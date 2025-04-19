@@ -1,0 +1,273 @@
+/* SearchBar.css */
+/* Overall container */
+.search-bar {
+  width: 100%;
+  padding: 1.5rem;
+  background: #ffffff;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  position: relative;
+}
+
+.search-form {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Logo styling */
+.logo-container img {
+  max-height: 45px;
+  padding-right: 2rem;
+}
+
+/* Search input container */
+.search-input-container {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 0.8rem 1.5rem;
+  border: 2px solid #e9ecef;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 800px;
+}
+
+.search-input-container input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+.search-input-container:focus-within {
+  border-color: #4a90e2;
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.2);
+}
+
+/* Input field styling */
+.search-input-container input {
+  flex: 1;
+  border: none;
+  background: transparent;
+  font-size: 1.1rem;
+  padding: 0 1.2rem;
+  height: 30px;
+  color: #2d3436;
+}
+
+.search-input-container input::placeholder {
+  color: #adb5bd;
+}
+
+/* Icon styling */
+.search-icon {
+  font-size: 1.8rem;
+  color: #6c757d;
+  min-width: 30px;
+}
+
+.clear-icon {
+  font-size: 1.5rem;
+  color: #6c757d;
+  cursor: pointer;
+  transition: color 0.2s ease;
+  margin-left: 1rem;
+}
+
+.clear-icon:hover {
+  color: #4a90e2;
+}
+
+/* Button styling */
+.filter-button{
+  padding: 0.9rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+
+.login-button {
+  padding: 0.9rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 100px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.filter-button {
+  background: #4a90e2;
+  color: white;
+  border: 2px solid #4a90e2;
+}
+
+.filter-button:hover {
+  background: #357abd;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+}
+
+/* Updated login-button with higher specificity */
+.search-bar .login-button {
+  background: #2ecc71;
+  color: white;
+  max-width: 120px;
+  border: 2px solid #2ecc71;
+}
+
+.search-bar .login-button:hover {
+  background: #27ae60;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+}
+
+/* Price filter modal */
+.notification {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  width: 350px;
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-top: 1rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  z-index: 1000;
+}
+
+.price-filter {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+}
+
+.price-filter label {
+  font-weight: 500;
+  color: #2d3436;
+}
+
+.price-filter input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  font-size: 1rem;
+  margin-top: 0.5rem;
+  transition: border-color 0.2s ease;
+}
+
+.price-filter input:focus {
+  border-color: #4a90e2;
+  outline: none;
+}
+
+.filter-buttons {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.filter-buttons button {
+  flex: 1;
+  padding: 0.8rem;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: all 0.2s ease;
+}
+
+.filter-buttons button:first-child {
+  background: #4a90e2;
+  color: white;
+}
+
+.filter-buttons button:first-child:hover {
+  background: #357abd;
+}
+
+.filter-buttons button:last-child {
+  background: #e74c3c;
+  color: white;
+}
+
+.filter-buttons button:last-child:hover {
+  background: #c0392b;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .search-bar form {
+    gap: 1.5rem;
+  }
+  
+  .search-input-container {
+    padding: 0.7rem 1.2rem;
+  }
+  
+  .filter-button,
+  .login-button {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 768px) {
+
+  .search-bar form{
+    padding: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .search-input-container {
+    order: 2;
+    flex: 100%;
+    max-width: 100%;
+    margin-top: 0.5rem;
+  }
+  
+  .filter-button {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    min-width: auto;
+    max-width: 18rem;
+  }
+
+  .login-button {
+    flex: 1;
+    padding: 0.7rem 1rem;
+    font-size: 0.95rem;
+    min-width: auto;
+    max-width: 15rem;
+  }
+
+  .search-bar {
+    padding: 1rem;
+  }
+  
+  .logo-container img {
+    max-height: 38px;
+    padding-right: 1rem;
+  }
+  
+  .search-input-container input {
+    font-size: 1rem;
+    height: 27px;
+  }
+  
+  .notification {
+    width: 100%;
+    right: auto;
+    left: 0;
+  }
+}

@@ -1,0 +1,17 @@
+.custom-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: #000;
+    line-height: 1;
+  }
+  
+  @media (prefers-color-scheme: dark) {
+    .custom-label {
+      color: #fff;
+    }
+  }
+  
+  .peer:disabled + .custom-label {
+    opacity: 0.7;
+    cursor: not-allowed;
+  }

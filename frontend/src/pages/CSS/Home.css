@@ -1,0 +1,131 @@
+/* General Styles */
+.home_page {
+  padding: 2rem 5%;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* Search Bar Separator */
+.separator {
+  height: 2px;
+  background: linear-gradient(90deg, transparent, #ddd, transparent);
+  margin: 1.5rem 0;
+  width: 100%;
+}
+
+/* Product Specific Navigation */
+.product_specific {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  margin: 2rem 0;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+  list-style: none;
+}
+
+.product_specific li a {
+  display: block;
+  padding: 12px 24px;
+  color: #2d3436;
+  text-decoration: none;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+}
+
+.product_specific li a:hover {
+  background: #4a90e2;
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(74, 144, 226, 0.25);
+}
+
+/* Buttons Enhancements */
+.back_to_home_button {
+  justify-content: center;
+  align-items: center;
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  border-radius: 8px;
+  letter-spacing: 0.5px;
+}
+
+.buy_button,
+.wishlist_button {
+  padding: 1rem 2rem;
+  font-size: 1.1rem;
+  width: 100%;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: transform 0.2s ease;
+}
+
+.button_container {
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* Product Cards Enhancements */
+.item-card {
+  padding: 1.5rem;
+  border: 1px solid #f1f3f5;
+}
+
+.product_image {
+  height: 240px;
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+}
+
+.product_name {
+  font-size: 1.3rem;
+  margin-bottom: 0.75rem;
+}
+
+.product_price {
+  font-size: 1.2rem;
+  color: #2ecc71;
+}
+
+/* Search Results Heading */
+.search_results_heading {
+  font-size: 2.25rem;
+  font-weight: 700;
+  color: #2d3436;
+  margin: 2rem 0;
+  text-align: center;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .product_specific {
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding: 1rem;
+  }
+  
+  .product_specific li a {
+    padding: 10px 18px;
+    font-size: 0.95rem;
+  }
+
+  .product_image {
+    height: 200px;
+  }
+}
+
+@media (max-width: 480px) {
+  .home_page {
+    padding: 1.5rem;
+  }
+
+  .item-card {
+    padding: 1rem;
+  }
+}

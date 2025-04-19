@@ -1,0 +1,65 @@
+/* Input.css */
+.input-wrapper {
+    padding: 2px; /* p-[2px] */
+    border-radius: 0.5rem; /* rounded-lg */
+    transition: all 0.3s; /* transition duration-300 */
+  }
+  
+  .custom-input {
+    display: block; /* flex not needed for single input */
+    height: 2.5rem; /* h-10 */
+    width: 100%; /* w-full */
+    border: none; /* border-none */
+    background-color: #f9fafb; /* bg-gray-50 */
+    color: #000; /* text-black */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1), 0 1px 2px rgba(0, 0, 0, 0.06); /* shadow-input approximation */
+    border-radius: 0.375rem; /* rounded-md */
+    padding: 0.5rem 0.75rem; /* py-2 px-3 */
+    font-size: 0.875rem; /* text-sm */
+    transition: all 0.4s; /* transition duration-400 */
+  }
+  
+  /* File input styles */
+  .custom-input[type="file"] {
+    border: 0; /* file:border-0 */
+    background: transparent; /* file:bg-transparent */
+    font-size: 0.875rem; /* file:text-sm */
+    font-weight: 500; /* file:font-medium */
+  }
+  
+  /* Placeholder styles */
+  .custom-input::placeholder {
+    color: #9ca3af; /* placeholder:text-neutral-400 */
+  }
+  
+  /* Focus styles */
+  .custom-input:focus-visible {
+    outline: none; /* focus-visible:outline-none */
+    box-shadow: 0 0 0 2px #9ca3af; /* focus-visible:ring-[2px] focus-visible:ring-neutral-400 */
+  }
+  
+  /* Disabled styles */
+  .custom-input:disabled {
+    cursor: not-allowed; /* disabled:cursor-not-allowed */
+    opacity: 0.5; /* disabled:opacity-50 */
+  }
+  
+  /* Hover effect from group */
+  .input-wrapper:hover .custom-input {
+    box-shadow: none; /* group-hover/input:shadow-none */
+  }
+  
+  /* Dark mode styles */
+  @media (prefers-color-scheme: dark) {
+    .custom-input {
+      background-color: #27272a; /* dark:bg-zinc-800 */
+      color: #fff; /* dark:text-white */
+      box-shadow: 0 0 1px 1px #3f3f46; /* dark:shadow-[0px_0px_1px_1px_var(--neutral-700)] */
+    }
+    .custom-input::placeholder {
+      color: #71717a; /* dark:placeholder-text-neutral-600 */
+    }
+    .custom-input:focus-visible {
+      box-shadow: 0 0 0 2px #71717a; /* dark:focus-visible:ring-neutral-600 */
+    }
+  }

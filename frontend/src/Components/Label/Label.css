@@ -1,0 +1,196 @@
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Oswald:wght@300;400;600&display=swap');
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --batman-dark: #0a0a0a;
+  --gotham-night: #1a1a1a;
+  --bat-signal: #f0e130;
+  --batman-yellow: #ffe600;
+  --gotham-gray: #2d2d2d;
+  --text-primary: #e0e0e0;
+  --gotham-black: #0a0a0a;
+  --batman-yellow: #f5c518;
+  --signal-yellow: #ffd700;
+  --gotham-night: #1a1a1a;
+  --bat-symbol: #2d2d2d;
+  --batman-voice: #e6e6e6;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between; /* Ensures proper horizontal alignment */
+  align-items: center;           /* Vertically centers items */
+  padding: 1.5rem 3rem;
+  background: linear-gradient(135deg, var(--batman-dark) 0%, var(--gotham-night) 100%);
+  position: relative;
+  overflow: hidden;
+  font-family: 'Oswald', sans-serif;
+  box-shadow: 0 8px 15px rgba(0, 0, 0, 0.3);
+  border-bottom: 2px solid var(--batman-yellow);
+  z-index: 1000;
+}
+
+.logo-container {
+  position: relative;
+  perspective: 1000px;
+}
+
+.site-name {
+  font-size: 2.8rem;
+  font-weight: 800;
+  justify-content:center;
+  align-items:center;
+  font-family: 'Bebas Neue', cursive;
+  background: linear-gradient(to right, var(--batman-yellow) 45%, var(--signal-yellow) 55%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: 4px;
+  text-shadow: 3px 3px 8px rgba(0, 0, 0, 0.8), 
+               -2px -2px 4px rgba(255, 213, 0, 0.2);
+  transition: all 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  position: relative;
+  padding-bottom: 0.5rem;
+}
+
+.site-name::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 3px;
+  background: linear-gradient(90deg, 
+    transparent 10%, 
+    var(--batman-yellow) 50%, 
+    transparent 90%);
+  opacity: 0.8;
+  transition: all 0.4s ease;
+}
+
+.site-name:hover {
+  transform: scale(1.05) rotateX(15deg);
+  text-shadow: 5px 5px 12px rgba(0, 0, 0, 0.9),
+               -3px -3px 6px rgba(255, 213, 0, 0.3);
+}
+
+.site-name:hover::after {
+  width: 100%;
+  height: 4px;
+  background: linear-gradient(90deg, 
+    var(--batman-yellow) 0%, 
+    var(--signal-yellow) 50%, 
+    var(--batman-yellow) 100%);
+}
+
+.animation-container {
+  width: 100px;
+  height: 100px;
+  margin: 0 1.5rem;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 50%;
+  overflow: hidden;
+  border: 2px solid var(--gotham-gray);
+}
+
+.animation-container:hover {
+  transform: scale(1.1);
+  border-color: var(--bat-signal);
+  box-shadow: 0 0 15px var(--bat-signal);
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+  }
+  100% {
+    transform: scale(1.05);
+    text-shadow: 4px 4px 8px rgba(0, 0, 0, 0.7);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px) rotateZ(-5deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotateZ(0);
+  }
+}
+
+@keyframes bat-pulse {
+  0% { filter: drop-shadow(0 0 5px rgba(245, 197, 24, 0.4)); }
+  50% { filter: drop-shadow(0 0 12px rgba(245, 197, 24, 0.6)); }
+  100% { filter: drop-shadow(0 0 5px rgba(245, 197, 24, 0.4)); }
+}
+
+@media (max-width: 768px) {
+  .header {
+    flex-direction: row; /* Maintain row layout */
+    padding: 1.2rem 2rem;
+    gap: 1rem;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .site-name {
+    font-size: 2.2rem;
+    letter-spacing: 2px;
+  }
+
+  .animation-container {
+    width: 60px;
+    height: 60px;
+    margin: 0 1rem;
+    animation: mobileFadeIn 1s ease forwards;
+  }
+
+  @keyframes mobileFadeIn {
+    from {
+      opacity: 0;
+      transform: translateX(-20px);
+    }
+    to {
+      opacity: 0.8;
+      transform: translateX(0);
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 1rem 1rem;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .site-name {
+    font-size: 1.8rem;
+  }
+
+  .animation-container {
+    width: 50px;
+    height: 50px;
+    margin: 0 0.5rem;
+  }
+}
+
+@keyframes float {
+  0% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-10px) rotate(2deg); }
+  100% { transform: translateY(0px) rotate(0deg); }
+}
+
+.ModelViewer {
+  animation: float 4s ease-in-out infinite;
+}

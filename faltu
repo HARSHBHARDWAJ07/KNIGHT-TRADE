@@ -1,0 +1,15 @@
+<div className="item-card1">
+    <div className="grid-item-details">
+      <div className="heart-containers">
+        <img className="heart-icon1" alt="" src="/heart.svg" />
+      </div>
+      <div className="price-containers">
+        <div className="div2">₹2,000</div>
+        <div className="item-descriptions">
+         
+            Atlas cycle 2 years old for sale
+          
+        </div>
+      </div>
+    </div>
+  </div>

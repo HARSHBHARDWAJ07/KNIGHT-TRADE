@@ -1,0 +1,8 @@
+.logoutbutton {
+    background: linear-gradient(45deg, var(--error), #dc2626);
+    color: white;
+    border-radius: var(--radius);
+    padding: 1rem 2rem;
+    font-weight: 600;
+    transition: var(--transition);
+  }
