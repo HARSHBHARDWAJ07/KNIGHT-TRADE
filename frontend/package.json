@@ -4,7 +4,6 @@
   "private": true,
   "dependencies": {
     "@radix-ui/react-label": "^2.1.2",
-    "@react-three/drei": "^10.0.4",
     "@reduxjs/toolkit": "^2.5.1",
     "@tabler/icons-react": "^3.30.0",
     "@testing-library/jest-dom": "^5.17.0",

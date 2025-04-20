@@ -18,7 +18,7 @@ const ModelViewer = () => {
       0.1, // Near clipping plane
       1000 // Far clipping plane
     );
-    camera.position.z = 2; // Position camera to view the model
+    camera.position.z = 2; 
 
     // Renderer setup
     const renderer = new THREE.WebGLRenderer({ antialias: true });
