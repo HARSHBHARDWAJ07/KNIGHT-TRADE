@@ -25,7 +25,7 @@ env.config();
 // Configure allowed origins
 const allowedOrigins = [
   'http://localhost:3000',                  // Local development
-  'https://harshbhardwaj07.github.io',       // Production frontend
+  'https://knight-trade.onrender.com',       // Production frontend
   // 'http://172.16.170.179:3000'            // Only include if you need LAN access
 ];
 
