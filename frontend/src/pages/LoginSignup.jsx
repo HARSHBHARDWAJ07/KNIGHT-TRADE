@@ -8,6 +8,7 @@ import { MdEmail } from 'react-icons/md';
 import React, { useState } from 'react';
 import { Label } from '../Components/ui/label';
 import { Input } from '../Components/ui/input';
+import { Link } from 'react-router-dom';
 
 
 const API_URL = process.env.REACT_APP_API_URL;
@@ -85,9 +86,7 @@ const LoginSignup = () => {
         </button>
 
         <div className="register-link">
-          <p>
-            Don't have an account? <a href="/register">Register</a>
-          </p>
+        <p>Don't have an account? <Link to="/register">Register</Link></p>
         </div>
       </form>
     </div>
