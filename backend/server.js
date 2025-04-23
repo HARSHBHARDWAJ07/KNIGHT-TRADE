@@ -18,25 +18,27 @@ import connectPgSimple from 'connect-pg-simple';
 const app = express();
 const port = 4000;
 const saltRounds = 10;
-const PGStore = connectPgSimple(session);
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 env.config();
 
 
-const PG = new pg({
+const PG = new pg.PG({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: false }
     : false
 });
 
+const PGStore = connectPgSimple(session);
+
 PG.connect()
   .then(() => console.log(' Connected to the database'))
   .catch(err => console.error('DB connection error:', err.stack));
 
-// Trust proxy if behind a load balancer (e.g., on Render)
+
 app.set('trust proxy', 1);
 
 
@@ -84,8 +86,7 @@ app.use(passport.session());
 
 
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 
 
 
