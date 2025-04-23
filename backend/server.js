@@ -17,6 +17,7 @@ import { fileURLToPath } from 'url';
 const app = express();
 const port = 4000;
 const saltRounds = 10;
+const MemoryStore = memorystoreFactory(session);  
 
 env.config();
 
@@ -30,7 +31,7 @@ const allowedOrigins = [                 // Local development
 
 app.use(cors({
   origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl requests)
+    
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
@@ -44,15 +45,23 @@ app.use(cors({
 }));
 
 
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false,
-            httpOnly:true,
-            maxAge: 24*60*60*10000,
-   },
-}));
+
+app.use(
+  session({
+    secret: process.env.SESSION_SECRET,
+    store: new MemoryStore({
+      checkPeriod: 24 * 60 * 60 * 1000, 
+    }),
+    resave: false,
+    saveUninitialized: false,
+    cookie: {
+      secure: false,      
+      httpOnly: true,
+      maxAge: 24 * 60 * 60 * 1000, 
+    },
+  })
+);
+
 
 app.use(passport.initialize());
 app.use(passport.session());
