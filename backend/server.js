@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
-import pkg from "pool";
+import pg from "pg";
 import nodemailer from 'nodemailer';
 import fs from "fs";
 import session from "express-session";
@@ -24,9 +24,9 @@ const __dirname = path.dirname(__filename);
 
 env.config();
 
-const { Pool } = pkg;
 
-const pool = new pool({
+
+const pool = new pg.pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: false }
