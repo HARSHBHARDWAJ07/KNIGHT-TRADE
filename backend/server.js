@@ -9,6 +9,7 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
+import memorystoreFactory from "memorystore";  
 import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -17,7 +18,9 @@ import { fileURLToPath } from 'url';
 const app = express();
 const port = 4000;
 const saltRounds = 10;
+
 const MemoryStore = memorystoreFactory(session);  
+
 
 env.config();
 
@@ -31,7 +34,6 @@ const allowedOrigins = [                 // Local development
 
 app.use(cors({
   origin: function (origin, callback) {
-    
     if (!origin) return callback(null, true);
     
     if (allowedOrigins.indexOf(origin) === -1) {
@@ -43,6 +45,7 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 
 
 
@@ -61,6 +64,7 @@ app.use(
     },
   })
 );
+
 
 
 app.use(passport.initialize());
@@ -542,3 +546,4 @@ app.post('/logout', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
