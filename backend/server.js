@@ -13,7 +13,7 @@ import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
-import connectpoolSimple from 'connect-pool-simple';
+import connectpgSimple from 'connect-pg-simple';
 
 const app = express();
 const port = 4000;
@@ -33,7 +33,7 @@ const pool = new pg.pool({
     : false
 });
 
-const poolStore = connectpoolSimple(session);
+const poolStore = connectpgSimple(session);
 
 pool.connect()
   .then(() => console.log(' Connected to the database'))
