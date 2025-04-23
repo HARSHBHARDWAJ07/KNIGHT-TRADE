@@ -2,21 +2,18 @@ import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
-import pkg from "pg";
-import nodemailer from "nodemailer";
+import pkg from "pool";
+import nodemailer from 'nodemailer';
 import fs from "fs";
 import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
 import passport from "passport";
-import { body, validationResult } from "express-validator";
+import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
-import { fileURLToPath } from "url";
-import connectPgSimple from "connect-pg-simple";
-
-// Destructure the Pool constructor from the default export of pg (CommonJS)
-const { Pool } = pkg;
+import { fileURLToPath } from 'url';
+import connectpoolSimple from 'connect-pool-simple';
 
 const app = express();
 const port = 4000;
@@ -24,45 +21,51 @@ const saltRounds = 10;
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
 env.config();
 
-// Create a connection pool
-const pool = new Pool({
+const { Pool } = pkg;
+
+
+const pool = new pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: false }
     : false
 });
 
-// Test database connection
-pool.connect()
-  .then(() => console.log('✔ Connected to the database'))
-  .catch(err => console.error('✖ DB connection error:', err.stack));
+const poolStore = connectpoolSimple(session);
 
-// Session store using pg pool
-const PgSessionStore = connectPgSimple(session);
+pool.connect()
+  .then(() => console.log(' Connected to the database'))
+  .catch(err => console.error('DB connection error:', err.stack));
+
 
 app.set('trust proxy', 1);
 
+
 const allowedOrigins = [                
   'https://knight-trade.onrender.com',      
+  // 'http://172.16.170.179:3000'           
 ];
 
 app.use(cors({
-  origin: (origin, callback) => {
+  origin: function (origin, callback) {
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) === -1) {
-      return callback(new Error('CORS policy restricts access from this origin'), false);
+      const msg = 'CORS policy restricts access from this origin';
+      return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
   credentials: true,
-  methods: ['GET','POST','PUT','DELETE'],
-  allowedHeaders: ['Content-Type','Authorization']
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+
 app.use(session({
-  store: new PgSessionStore({
+  store: new poolStore({
     pool: pool,
     tableName: 'user_sessions',
     createTableIfMissing: true
@@ -70,267 +73,478 @@ app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: {
+  cookie: { 
     secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
     sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  }
+  },
 }));
+
+
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Multer setup for file uploads\ nconst storage = multer.diskStorage({
-  destination: (req, file, cb) => cb(null, 'uploads/'),
-  filename: (req, file, cb) => cb(null, `${Date.now()}-${file.originalname}`)
+
+
+
+
+
+
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, 'uploads/'); 
+  },
+  filename: (req, file, cb) => {
+    cb(null, `${Date.now()}-${file.originalname}`); 
+  },
 });
 const upload = multer({ storage });
+
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
 const authenticate = (req, res, next) => {
-  if (!req.user) return res.status(401).json({ message: 'Unauthorized' });
+  if (!req.user) {
+      return res.status(401).json({ message: 'Unauthorized' });
+  }
   next();
 };
 
-// Email transporter using Gmail
+
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
+      user: process.env.EMAIL_USER, 
+      pass: process.env.EMAIL_PASS,   
+  },
 });
 
 const sendMail = async ({ to, subject, html }) => {
-  if (!to || typeof to !== 'string' || to.trim() === '') {
+
+  if (!to || typeof to !== 'string' || to.trim() === "") {
+    console.error('Recipient email is missing. Provided "to" value:', to);
     throw new Error('Recipient email is missing');
   }
-  await transporter.sendMail({ from: process.env.EMAIL_USER, to, subject, html });
+  const mailOptions = {
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    html,
+  }; 
+
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log(`Email sent successfully to ${to}`);
+  } catch (error) {
+    console.error('Error sending email:', error);
+    throw new Error('Email sending failed');
+  }
 };
 
-// Passport local strategy\ npassport.use(new LocalStrategy({
+passport.use(new LocalStrategy({
   usernameField: 'email',
-  passwordField: 'password'
+  passwordField: 'password',
 }, async (email, password, done) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM userdata WHERE email = $1', [email]);
-    if (!rows.length) return done(null, false, { message: 'User not found' });
-    const user = rows[0];
+    const result = await pool.query("SELECT * FROM userdata WHERE email = $1", [email]);
+
+    if (result.rows.length === 0) {
+      return done(null, false, { message: "User not found" });
+    }
+
+    const user = result.rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
-    return done(null, isMatch ? user : false, isMatch ? undefined : { message: 'Incorrect password' });
+
+    if (isMatch) {
+      return done(null, user);
+    } else {
+      return done(null, false, { message: "Incorrect password" });
+    }
   } catch (err) {
-    done(err);
+    return done(err);
   }
 }));
 
-passport.serializeUser((user, done) => done(null, user.email));
+passport.serializeUser((user, done) => {
+  done(null, user.email); 
+});
+
 passport.deserializeUser(async (email, done) => {
   try {
-    const { rows } = await pool.query('SELECT * FROM userdata WHERE email = $1', [email]);
-    return rows.length ? done(null, rows[0]) : done(new Error('User not found'));
+    const result = await pool.query("SELECT * FROM userdata WHERE email = $1", [email]);
+
+    if (result.rows.length > 0) {
+      done(null, result.rows[0]); 
+    } else {
+      done(new Error("User not found"), null);
+    }
   } catch (err) {
-    done(err);
+    done(err, null);
   }
 });
 
-// Routes
-app.post('/signup', upload.single('profilePhoto'), async (req, res) => {
+
+app.post("/signup", upload.single('profilePhoto'), async (req, res) => {
   const { email, password, username, address } = req.body;
-  const profilePhotoUrl = req.file ? req.file.filename : '';
-  try {
-    const { rows: existing } = await pool.query('SELECT 1 FROM userdata WHERE email = $1', [email]);
-    if (existing.length) return res.status(400).json({ message: 'User already exists' });
-    const hashed = await bcrypt.hash(password, saltRounds);
-    const { rows } = await pool.query(
-      'INSERT INTO userdata (email, username, password, address, profile_photo) VALUES ($1,$2,$3,$4,$5) RETURNING *',
-      [email, username, hashed, address, profilePhotoUrl]
-    );
-    res.status(201).json({ message: 'Registration successful', user: rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal server error' });
-  }
-});
+  let profilePhotoUrl = '';
 
-app.post('/login', (req, res, next) => {
-  passport.authenticate('local', (err, user, info) => {
-    if (err) return next(err);
-    if (!user) return res.status(400).json({ message: info.message });
-    req.logIn(user, err => err ? next(err) : res.json({ message: 'Login successful', user, token: req.sessionID }));
-  })(req, res, next);
+  if (req.file) {
+    profilePhotoUrl = req.file.filename;
+  }
+
+  try {
+    const checkResult = await pool.query("SELECT * FROM userdata WHERE email = $1", [email]);
+
+    if (checkResult.rows.length > 0) {
+      return res.status(400).json({ message: "User already exists. Please login." });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    const result = await pool.query(
+      "INSERT INTO userdata (email, username, password, address, profile_photo) VALUES ($1, $2, $3, $4, $5) RETURNING *",
+      [email, username, hashedPassword, address, profilePhotoUrl]
+    );
+
+    const user = result.rows[0];
+    res.status(201).json({ message: "Registration successful", user });
+  } catch (err) {
+    console.error("Unexpected error:", err);
+    res.status(500).json({ message: "Internal server error" });
+  }
 });
 
 app.get('/search', async (req, res) => {
-  let sql = 'SELECT id, product_name, product_description, product_price, product_image, user_username FROM products WHERE 1=1';
-  const params = [];
   const { q, minPrice, maxPrice } = req.query;
-  if (q) { params.push(`%${q}%`); sql += ` AND (product_name ILIKE $${params.length} OR product_description ILIKE $${params.length})`; }
-  if (minPrice) { const m = parseFloat(minPrice); if (isNaN(m)) return res.status(400).json({ error: 'Invalid min price' }); params.push(m); sql += ` AND product_price >= $${params.length}`; }
-  if (maxPrice) { const m = parseFloat(maxPrice); if (isNaN(m)) return res.status(400).json({ error: 'Invalid max price' }); params.push(m); sql += ` AND product_price <= $${params.length}`; }
-  try {
-    const { rows } = await pool.query(sql, params);
-    res.json(rows);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Server error' });
+
+  let query = `
+    SELECT id, product_name, product_description, product_price, product_image , user_username
+    FROM products
+    WHERE 1=1`;
+  const queryParams = [];
+
+  if (q) {
+    queryParams.push(`%${q}%`);
+    query += ` AND (product_name ILIKE $${queryParams.length} OR product_description ILIKE $${queryParams.length})`;
   }
+
+
+  if (minPrice) {
+    const min = parseFloat(minPrice);
+    if (isNaN(min)) {
+      return res.status(400).json({ error: 'Invalid minimum price' });
+    }
+    queryParams.push(min);
+    query += ` AND product_price >= $${queryParams.length}`;
+  }
+
+ 
+  if (maxPrice) {
+    const max = parseFloat(maxPrice);
+    if (isNaN(max)) {
+      return res.status(400).json({ error: 'Invalid maximum price' });
+    }
+    queryParams.push(max);
+    query += ` AND product_price <= $${queryParams.length}`;
+  }
+
+  try {
+    const result = await pool.query(query, queryParams);
+    res.status(200).json(result.rows.length > 0 ? result.rows : []);
+  } catch (error) {
+    console.error('Error in /search route:', error.message);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
+
+
+app.post("/login", (req, res, next) => {
+  passport.authenticate("local", (err, user, info) => {
+    if (err) return next(err);
+    if (!user) return res.status(400).json({ message: info.message });
+
+    req.logIn(user, (err) => {
+      if (err) return next(err);
+      console.log("user:", req.user);
+      res.status(200).json({ 
+        message: "Login successful", 
+        user: req.user, 
+        token: req.sessionID 
+      });
+    });
+  })(req, res, next);
 });
 
 app.post('/purchaseproduct', authenticate, async (req, res) => {
   const { userEmail, username, user_id, userAddress, productName, price, product_id } = req.body;
-  if (!userEmail || !username || !userAddress || !productName || !price || !user_id || !product_id)
-    return res.status(400).json({ message: 'Missing fields' });
+
+  if (!userEmail || !username || !userAddress || !productName || !price || !user_id || !product_id) {
+    return res.status(400).json({ message: 'Missing required fields' });
+  }
+
   try {
-    const { rows } = await pool.query('SELECT product_email FROM products WHERE product_name=$1', [productName]);
-    if (!rows.length) return res.status(404).json({ message: 'Product not found' });
+
+    const { rows } = await pool.query(
+      'SELECT product_email FROM products WHERE product_name = $1',
+      [productName]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Product not found' });
+    }
+    const productOwnerEmail = rows[0].product_email;
+
+    const emailHtml = `
+      <p>Hello,</p>
+      <p>You have received a new purchase request for your product: <strong>${productName}</strong>.</p>
+      <p>Buyer Details:</p>
+      <ul>
+        <li>Name: ${username}</li>
+        <li>Email: ${userEmail}</li>
+        <li>Address: ${userAddress}</li>
+      </ul>
+      <p>Product Price: $${price}</p>
+      <p>Please reach out to the buyer to confirm the purchase.</p>
+      <p>Thank you,<br>Your Company Name</p>
+    `;
+
     await sendMail({
-      to: rows[0].product_email,
-      subject: 'New Purchase Request',
-      html: `<p>New purchase request for ${productName} by ${username} (${userEmail}), address: ${userAddress}, price: ${price}</p>`
+      to: productOwnerEmail,
+      subject: 'New Purchase Request for Your Product',
+      html: emailHtml,
     });
-    await pool.query('INSERT INTO "order" (user_id,product_id) VALUES($1,$2)', [user_id, product_id]);
-    res.json({ message: 'Purchase request processed' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal error' });
+
+    await pool.query(
+      'INSERT INTO "order" (user_id, product_id) VALUES ($1, $2)',
+      [user_id, product_id]
+    );
+
+    return res.status(200).json({ message: 'Purchase request sent and product added to wishlist' });
+  } catch (error) {
+    console.error('Error in /purchaseproduct endpoint:', error);
+    return res.status(500).json({ message: 'An error occurred processing your request' });
   }
 });
 
-app.get('/profile', async (req, res) => {
-  if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
-  try {
-    const { rows } = await pool.query('SELECT * FROM userdata WHERE email=$1', [req.user.email]);
-    res.json(rows[0] || { message: 'User not found' });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal error' });
+
+
+
+app.get("/profile", async (req, res) => {
+  console.log("Session info:", req.session);
+  console.log("Is Authenticated:", req.isAuthenticated());
+  console.log("User:", req.user);
+
+  if (!req.isAuthenticated()) {
+    return res.status(401).json({ message: "Unauthorized" });
   }
+   else {
+  const result = await pool.query("SELECT * FROM userdata WHERE email = $1", [req.user.email]);
+    if (result.rows.length > 0) {
+      console.log('Authenticated user:', result.rows[0]);
+      return res.status(200).json({ user: result.rows[0], status: "ok" });
+    } else {
+      return res.status(404).json({ message: "User not found" });
+    }
+   }
 });
 
-app.post('/profile', upload.single('productImage'), [
-  body('productName').notEmpty(),
-  body('productDescription').notEmpty(),
-  body('productPrice').isFloat({ gt: 0 })
-], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) { if (req.file) fs.unlinkSync(req.file.path); return res.status(400).json({ errors: errors.array() }); }
-  if (!req.isAuthenticated()) return res.status(401).json({ message: 'Unauthorized' });
-  if (!req.file) return res.status(400).json({ message: 'No file uploaded' });
-  try {
+
+app.post("/profile",
+  upload.single('productImage'),
+  (req, res, next) => {
+    console.log("Request Body:", req.body);
+    console.log("Request File:", req.file);
+    next();
+  },
+  [
+    body('productName').notEmpty().withMessage('Product name is required'),
+    body('productDescription').notEmpty().withMessage('Product description is required'),
+    body('productPrice').isFloat({ gt: 0 }).withMessage('Product price must be a valid number greater than 0'),
+  ],
+  async (req, res) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      if (req.file) fs.unlinkSync(req.file.path); 
+      return res.status(400).json({ errors: errors.array() });
+    }
+
+    if (!req.isAuthenticated()) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ message: "No file uploaded" });
+    }
+
     const { productName, productDescription, productPrice } = req.body;
     const productImage = req.file.filename;
-    const { rows } = await pool.query(
-      'INSERT INTO products (product_name,product_description,product_price,product_image,user_username,product_email) VALUES($1,$2,$3,$4,$5,$6) RETURNING *',
-      [productName,productDescription,productPrice,productImage,req.user.username,req.user.email]
-    );
-    res.json({ message: 'Product added', product: rows[0] });
-  } catch (err) {
-    console.error(err);
-    if (req.file) fs.unlinkSync(req.file.path);
-    res.status(500).json({ message: 'Internal error' });
+
+    try {
+      const result = await pool.query(
+        'INSERT INTO products (product_name, product_description, product_price, product_image, user_username , product_email) VALUES ($1, $2, $3, $4, $5 , $6) RETURNING *',
+        [productName, productDescription, productPrice, productImage, req.user.username , req.user.email]
+      );
+
+      res.status(200).json({ message: "Product added successfully", product: result.rows[0] });
+    } catch (err) {
+      console.error("Database error:", err.message);
+      if (req.file) fs.unlinkSync(req.file.path); 
+      res.status(500).json({ message: "Internal server error" });
+    }
   }
-});
+);
 
-app.use('/uploads', express.static(path.join(__dirname,'uploads')));
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
-// Generic GET lists
 app.get('/api/products', async (req, res) => {
+  
   try {
-    const { rows } = await pool.query('SELECT id,product_name,product_description,product_price,product_image,user_username FROM products');
-    res.json(rows);
+    
+      const result = await pool.query(
+          'SELECT id, product_name, product_description, product_price, product_image, user_username FROM products '
+      );
+      res.status(200).json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal error' });
+      console.error('Database error:', err);
+      res.status(500).json({ message: 'Internal server error' });
   }
 });
 
-app.get('/products', async (req, res) => {
+app.get("/products", async (req, res) => {
+  const { username } = req.query; 
+  console.log("username", username);
   try {
-    const { rows } = await pool.query('SELECT id,product_name,product_description,product_price,product_image,user_username FROM products WHERE user_username=$1',[req.query.username]);
-    res.json(rows);
+      const result = await pool.query(
+          'SELECT  id, product_name, product_description, product_price, product_image, user_username FROM products WHERE user_username = $1',
+          [username]
+      );
+      res.json(result.rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Internal error' });
+      console.error(err.message);
+      res.status(500).json({ error: 'Server error' });
   }
 });
 
 app.get('/api/wishlist', async (req, res) => {
+  
   const userId = req.query.user_id;
-  if (!userId) return res.status(400).json({ error: 'Missing user_id' });
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing user_id parameter' });
+  }
+
   try {
-    const { rows } = await pool.query(
-      `SELECT p.id,p.product_name,p.product_price,p.product_image,p.product_description,p.user_username
-       FROM wishlist w JOIN products p ON w.product_id=p.id WHERE w.user_id=$1`,
-      [userId]
-    );
+    const query = `
+      SELECT p.id, p.product_name, p.product_price, p.product_image ,p.product_description,p.user_username
+      FROM wishlist w
+      JOIN products p ON w.product_id = p.id
+      WHERE w.user_id = $1
+    `;
+    const { rows } = await pool.query(query, [userId]);
     res.json(rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal error' });
+    console.error('Error fetching wishlist items:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
+
 
 app.get('/order', async (req, res) => {
+ 
   const userId = req.query.user_id;
-  if (!userId) return res.status(400).json({ error: 'Missing user_id' });
+
+  if (!userId) {
+    return res.status(400).json({ error: 'Missing user_id parameter' });
+  }
+
   try {
-    const { rows } = await pool.query(
-      `SELECT p.id,p.product_name,p.product_price,p.product_image,p.product_description,p.user_username
-       FROM "order" w JOIN products p ON w.product_id=p.id WHERE w.user_id=$1`,
-      [userId]
-    );
+    const query = `
+      SELECT p.id, p.product_name, p.product_price, p.product_image , p.product_description,p.user_username,p.id
+      FROM "order" w
+      JOIN products p ON w.product_id = p.id
+      WHERE w.user_id = $1
+    `;
+    const { rows } = await pool.query(query, [userId]);
     res.json(rows);
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Internal error' });
+    console.error('Error fetching wishlist items:', err);
+    res.status(500).json({ error: 'Internal Server Error' });
   }
 });
 
+
+
 app.post('/wishlist/add', async (req, res) => {
-  const { user_id, product_id } = req.body;
-  if (!user_id || !product_id) return res.status(400).json({ error: 'Missing fields' });
+  const {user_id} = req.body;
+  const { product_id } = req.body;
+
+  if (!user_id || !product_id) {
+    return res.status(400).json({ error: 'Missing product_id or user authentication' });
+  }
+
   try {
-    await pool.query('INSERT INTO wishlist (user_id,product_id) VALUES($1,$2)',[user_id,product_id]);
-    res.status(201).json({ message: 'Added to wishlist' });
+    await pool.query('INSERT INTO wishlist (user_id, product_id) VALUES ($1, $2)', [user_id, product_id]);
+    res.status(201).json({ message: 'Product added to wishlist' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal error' });
+    res.status(500).json({ error: 'Error adding to wishlist' });
   }
 });
 
 app.delete('/wishlist/remove', async (req, res) => {
   const { user_id, product_id } = req.body;
+
   try {
-    await pool.query('DELETE FROM wishlist WHERE user_id=$1 AND product_id=$2',[user_id,product_id]);
-    res.json({ message: 'Removed from wishlist' });
+    await pool.query('DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2', [user_id, product_id]);
+    res.json({ message: 'product removed from wishlist' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal error' });
+    res.status(500).json({ error: 'Error removing from wishlist' });
   }
 });
 
 app.delete('/delete/product', async (req, res) => {
+  const { product_id } = req.body;
+  console.log(product_id);
   try {
-    const { rowCount } = await pool.query('DELETE FROM products WHERE id=$1',[req.body.product_id]);
-    res.json(rowCount ? { message: 'Product deleted' } : { error: 'Not found' });
+    const result = await pool.query('DELETE FROM products WHERE id = $1', [product_id]);
+   
+    if (result.rowCount === 0) {
+      return res.status(404).json({ error: 'Product not found' });
+    }
+    
+    res.json({ message: 'Product removed from wishlist' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Internal error' });
+    res.status(500).json({ error: 'Error removing from wishlist' });
   }
 });
 
+
 app.post('/logout', (req, res) => {
-  req.logout(err => {
-    if (err) return res.status(500).json({ message: 'Logout failed' });
-    req.session.destroy(err => {
-      if (err) return res.status(500).json({ message: 'Session destroy failed' });
-      res.clearCookie('connect.sid',{ path:'/', secure:process.env.NODE_ENV==='production', sameSite:process.env.NODE_ENV==='production'? 'none':'lax' });
-      res.json({ message: 'Logout successful' });
+  req.logout((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    req.session.destroy((err) => {
+      if (err) {
+        console.error("Session destruction error:", err);
+        return res.status(500).json({ message: "Session destruction failed" });
+      }
+      res.clearCookie('connect.sid', { 
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      });
+      res.status(200).json({ message: "Logout successful" });
     });
   });
 });
 
-app.listen(port, () => console.log(`Server running on port ${port}`));
+
+app.listen(port, () => {
+  console.log(`Server running on port ${port}`);
+});
