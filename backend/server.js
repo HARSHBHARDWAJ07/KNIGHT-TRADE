@@ -24,9 +24,9 @@ const __dirname = path.dirname(__filename);
 
 env.config();
 
+const { Pool } = pg;
 
-
-const pool = new pg.pool({
+const pool = new pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: false }
