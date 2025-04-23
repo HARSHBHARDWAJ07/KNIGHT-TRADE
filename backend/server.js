@@ -13,81 +13,62 @@ import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
-import connectpgSimple from 'connect-pg-simple';
 
 const app = express();
 const port = 4000;
 const saltRounds = 10;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
 
 env.config();
 
-const { Pool } = pg;
-
-const pool = new pool({
-  connectionString: process.env.DATABASE_URL,
-  ssl: process.env.NODE_ENV === 'production'
-    ? { rejectUnauthorized: false }
-    : false
-});
-
-const poolStore = connectpgSimple(session);
-
-pool.connect()
-  .then(() => console.log(' Connected to the database'))
-  .catch(err => console.error('DB connection error:', err.stack));
 
 
-app.set('trust proxy', 1);
-
-
-const allowedOrigins = [                
-  'https://knight-trade.onrender.com',      
-  // 'http://172.16.170.179:3000'           
+// Configure allowed origins
+const allowedOrigins = [                 // Local development
+  'https://knight-trade.onrender.com',       // Production frontend
+  // 'http://172.16.170.179:3000'            // Only include if you need LAN access
 ];
 
 app.use(cors({
   origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, curl requests)
     if (!origin) return callback(null, true);
+    
     if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'CORS policy restricts access from this origin';
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
       return callback(new Error(msg), false);
     }
     return callback(null, true);
   },
   credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 
 app.use(session({
-  store: new poolStore({
-    pool: pool,
-    tableName: 'user_sessions',
-    createTableIfMissing: true
-  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  },
+  cookie: { secure: false,
+            httpOnly:true,
+            maxAge: 24*60*60*10000,
+   },
 }));
-
-
 
 app.use(passport.initialize());
 app.use(passport.session());
 
 
 
+const PG = new pg.Client({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
 
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 
 
@@ -101,6 +82,14 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
+
+PG.connect(err => {
+  if (err) {
+    console.error('Connection error', err.stack);
+  } else {
+    console.log('Connected to the database');
+  }
+});
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -148,7 +137,7 @@ passport.use(new LocalStrategy({
   passwordField: 'password',
 }, async (email, password, done) => {
   try {
-    const result = await pool.query("SELECT * FROM userdata WHERE email = $1", [email]);
+    const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
 
     if (result.rows.length === 0) {
       return done(null, false, { message: "User not found" });
@@ -173,7 +162,7 @@ passport.serializeUser((user, done) => {
 
 passport.deserializeUser(async (email, done) => {
   try {
-    const result = await pool.query("SELECT * FROM userdata WHERE email = $1", [email]);
+    const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
 
     if (result.rows.length > 0) {
       done(null, result.rows[0]); 
@@ -195,7 +184,7 @@ app.post("/signup", upload.single('profilePhoto'), async (req, res) => {
   }
 
   try {
-    const checkResult = await pool.query("SELECT * FROM userdata WHERE email = $1", [email]);
+    const checkResult = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
 
     if (checkResult.rows.length > 0) {
       return res.status(400).json({ message: "User already exists. Please login." });
@@ -203,7 +192,7 @@ app.post("/signup", upload.single('profilePhoto'), async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-    const result = await pool.query(
+    const result = await PG.query(
       "INSERT INTO userdata (email, username, password, address, profile_photo) VALUES ($1, $2, $3, $4, $5) RETURNING *",
       [email, username, hashedPassword, address, profilePhotoUrl]
     );
@@ -251,7 +240,7 @@ app.get('/search', async (req, res) => {
   }
 
   try {
-    const result = await pool.query(query, queryParams);
+    const result = await PG.query(query, queryParams);
     res.status(200).json(result.rows.length > 0 ? result.rows : []);
   } catch (error) {
     console.error('Error in /search route:', error.message);
@@ -286,7 +275,7 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
 
   try {
 
-    const { rows } = await pool.query(
+    const { rows } = await PG.query(
       'SELECT product_email FROM products WHERE product_name = $1',
       [productName]
     );
@@ -315,7 +304,7 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
       html: emailHtml,
     });
 
-    await pool.query(
+    await PG.query(
       'INSERT INTO "order" (user_id, product_id) VALUES ($1, $2)',
       [user_id, product_id]
     );
@@ -339,7 +328,7 @@ app.get("/profile", async (req, res) => {
     return res.status(401).json({ message: "Unauthorized" });
   }
    else {
-  const result = await pool.query("SELECT * FROM userdata WHERE email = $1", [req.user.email]);
+  const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [req.user.email]);
     if (result.rows.length > 0) {
       console.log('Authenticated user:', result.rows[0]);
       return res.status(200).json({ user: result.rows[0], status: "ok" });
@@ -381,7 +370,7 @@ app.post("/profile",
     const productImage = req.file.filename;
 
     try {
-      const result = await pool.query(
+      const result = await PG.query(
         'INSERT INTO products (product_name, product_description, product_price, product_image, user_username , product_email) VALUES ($1, $2, $3, $4, $5 , $6) RETURNING *',
         [productName, productDescription, productPrice, productImage, req.user.username , req.user.email]
       );
@@ -401,7 +390,7 @@ app.get('/api/products', async (req, res) => {
   
   try {
     
-      const result = await pool.query(
+      const result = await PG.query(
           'SELECT id, product_name, product_description, product_price, product_image, user_username FROM products '
       );
       res.status(200).json(result.rows);
@@ -415,7 +404,7 @@ app.get("/products", async (req, res) => {
   const { username } = req.query; 
   console.log("username", username);
   try {
-      const result = await pool.query(
+      const result = await PG.query(
           'SELECT  id, product_name, product_description, product_price, product_image, user_username FROM products WHERE user_username = $1',
           [username]
       );
@@ -441,7 +430,7 @@ app.get('/api/wishlist', async (req, res) => {
       JOIN products p ON w.product_id = p.id
       WHERE w.user_id = $1
     `;
-    const { rows } = await pool.query(query, [userId]);
+    const { rows } = await PG.query(query, [userId]);
     res.json(rows);
   } catch (err) {
     console.error('Error fetching wishlist items:', err);
@@ -465,7 +454,7 @@ app.get('/order', async (req, res) => {
       JOIN products p ON w.product_id = p.id
       WHERE w.user_id = $1
     `;
-    const { rows } = await pool.query(query, [userId]);
+    const { rows } = await PG.query(query, [userId]);
     res.json(rows);
   } catch (err) {
     console.error('Error fetching wishlist items:', err);
@@ -484,7 +473,7 @@ app.post('/wishlist/add', async (req, res) => {
   }
 
   try {
-    await pool.query('INSERT INTO wishlist (user_id, product_id) VALUES ($1, $2)', [user_id, product_id]);
+    await PG.query('INSERT INTO wishlist (user_id, product_id) VALUES ($1, $2)', [user_id, product_id]);
     res.status(201).json({ message: 'Product added to wishlist' });
   } catch (err) {
     console.error(err);
@@ -496,7 +485,7 @@ app.delete('/wishlist/remove', async (req, res) => {
   const { user_id, product_id } = req.body;
 
   try {
-    await pool.query('DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2', [user_id, product_id]);
+    await PG.query('DELETE FROM wishlist WHERE user_id = $1 AND product_id = $2', [user_id, product_id]);
     res.json({ message: 'product removed from wishlist' });
   } catch (err) {
     console.error(err);
@@ -508,7 +497,7 @@ app.delete('/delete/product', async (req, res) => {
   const { product_id } = req.body;
   console.log(product_id);
   try {
-    const result = await pool.query('DELETE FROM products WHERE id = $1', [product_id]);
+    const result = await PG.query('DELETE FROM products WHERE id = $1', [product_id]);
    
     if (result.rowCount === 0) {
       return res.status(404).json({ error: 'Product not found' });
@@ -522,24 +511,21 @@ app.delete('/delete/product', async (req, res) => {
 });
 
 
+
 app.post('/logout', (req, res) => {
   req.logout((err) => {
-    if (err) {
-      console.error("Logout error:", err);
-      return res.status(500).json({ message: "Logout failed" });
-    }
-    req.session.destroy((err) => {
       if (err) {
-        console.error("Session destruction error:", err);
-        return res.status(500).json({ message: "Session destruction failed" });
+          console.error("Logout error:", err);
+          return res.status(500).json({ message: "Logout failed" });
       }
-      res.clearCookie('connect.sid', { 
-        path: '/',
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+      req.session.destroy((err) => {
+          if (err) {
+              console.error("Session destruction error:", err);
+              return res.status(500).json({ message: "Session destruction failed" });
+          }
+          res.clearCookie('connect.sid', { path: '/' }); 
+          res.status(200).json({ message: "Logout successful" });
       });
-      res.status(200).json({ message: "Logout successful" });
-    });
   });
 });
 
@@ -547,3 +533,4 @@ app.post('/logout', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
+
