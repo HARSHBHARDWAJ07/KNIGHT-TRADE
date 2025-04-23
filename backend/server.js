@@ -21,6 +21,8 @@ const saltRounds = 10;
 env.config();
 
 
+app.set("trust proxy", process.env.NODE_ENV === "production");
+
 
 // Configure allowed origins
 const allowedOrigins = [                 // Local development
@@ -43,16 +45,22 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
+app.use(cookieParser());
 
+const isProd = process.env.NODE_ENV === "production";
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false,
-            httpOnly:true,
-            maxAge: 24*60*60*10000,
-   },
+  proxy: isProd,              // trust the X-Forwarded-* headers in prod
+  cookie: {
+    secure: isProd,           // send cookie over HTTPS only in prod
+    httpOnly: true,
+    sameSite: isProd ? "none" : "lax",  // allow cross-site in prod
+    maxAge: 10 * 24 * 60 * 60 * 1000,    // 10 days
+  },
 }));
+
 
 app.use(passport.initialize());
 app.use(passport.session());
