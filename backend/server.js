@@ -25,7 +25,7 @@ const PGStore = connectPgSimple(session);
 env.config();
 
 
-const PG = new PG({
+const PG = new pg({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.NODE_ENV === 'production'
     ? { rejectUnauthorized: false }
