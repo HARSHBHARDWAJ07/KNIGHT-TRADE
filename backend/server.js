@@ -25,26 +25,18 @@ const PGStore = connectPgSimple(session);
 env.config();
 
 
-
-const PG = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
+const PG = new PG({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production'
+    ? { rejectUnauthorized: false }
+    : false
 });
 
+PG.connect()
+  .then(() => console.log(' Connected to the database'))
+  .catch(err => console.error('DB connection error:', err.stack));
 
-PG.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to the database');
-  }
-});
-
-
-
+// Trust proxy if behind a load balancer (e.g., on Render)
 app.set('trust proxy', 1);
 
 
