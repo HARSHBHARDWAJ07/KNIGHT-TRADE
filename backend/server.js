@@ -13,49 +13,16 @@ import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
+import connectPgSimple from 'connect-pg-simple';
 
 const app = express();
 const port = 4000;
 const saltRounds = 10;
+const PGStore = connectPgSimple(session);
+
+
 
 env.config();
-
-
-
-// Configure allowed origins
-const allowedOrigins = [                 // Local development
-  'https://knight-trade.onrender.com',       // Production frontend
-  // 'http://172.16.170.179:3000'            // Only include if you need LAN access
-];
-
-app.use(cors({
-  origin: function (origin, callback) {
-    // Allow requests with no origin (mobile apps, curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
-  credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false,
-            httpOnly:true,
-            maxAge: 24*60*60*10000,
-   },
-}));
-
-app.use(passport.initialize());
-app.use(passport.session());
 
 
 
@@ -66,6 +33,64 @@ const PG = new pg.Client({
   password: process.env.PG_PASSWORD,
   port: process.env.PG_PORT,
 });
+
+
+PG.connect(err => {
+  if (err) {
+    console.error('Connection error', err.stack);
+  } else {
+    console.log('Connected to the database');
+  }
+});
+
+
+
+app.set('trust proxy', 1);
+
+
+const allowedOrigins = [                
+  'https://knight-trade.onrender.com',      
+  // 'http://172.16.170.179:3000'           
+];
+
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'CORS policy restricts access from this origin';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
+app.use(session({
+  store: new PGStore({
+    pg: PG,
+    tableName: 'user_sessions',
+    createTableIfMissing: true
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { 
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 24 hours
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  },
+}));
+
+
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -82,14 +107,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-
-PG.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to the database');
-  }
-});
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -511,21 +528,24 @@ app.delete('/delete/product', async (req, res) => {
 });
 
 
-
 app.post('/logout', (req, res) => {
   req.logout((err) => {
+    if (err) {
+      console.error("Logout error:", err);
+      return res.status(500).json({ message: "Logout failed" });
+    }
+    req.session.destroy((err) => {
       if (err) {
-          console.error("Logout error:", err);
-          return res.status(500).json({ message: "Logout failed" });
+        console.error("Session destruction error:", err);
+        return res.status(500).json({ message: "Session destruction failed" });
       }
-      req.session.destroy((err) => {
-          if (err) {
-              console.error("Session destruction error:", err);
-              return res.status(500).json({ message: "Session destruction failed" });
-          }
-          res.clearCookie('connect.sid', { path: '/' }); 
-          res.status(200).json({ message: "Logout successful" });
+      res.clearCookie('connect.sid', { 
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
       });
+      res.status(200).json({ message: "Logout successful" });
+    });
   });
 });
 
