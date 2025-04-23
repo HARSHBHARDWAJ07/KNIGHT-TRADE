@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
-import {pool} from "pg";
+import pkg from "pg";
 import nodemailer from 'nodemailer';
 import fs from "fs";
 import session from "express-session";
@@ -23,6 +23,8 @@ const __dirname = path.dirname(__filename);
 
 
 env.config();
+
+const { Pool } = pkg;
 
 
 const PG = new pool({
