@@ -2,7 +2,7 @@ import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
-import pkg from "pool";
+import {pool} from "pool";
 import nodemailer from 'nodemailer';
 import fs from "fs";
 import session from "express-session";
@@ -23,9 +23,6 @@ const __dirname = path.dirname(__filename);
 
 
 env.config();
-
-const { Pool } = pkg;
-
 
 const pool = new pool({
   connectionString: process.env.DATABASE_URL,
