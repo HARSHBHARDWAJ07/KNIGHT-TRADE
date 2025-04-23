@@ -13,33 +13,14 @@ import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
-import pgSession from 'connect-pg-simple';
 
 const app = express();
 const port = 4000;
 const saltRounds = 10;
-const PGStore = pgSession(session);
 
 env.config();
 
 
-const PG = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
-
-PG.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to the database');
-  }
-});
-
-app.set('trust proxy', 1);
 
 // Configure allowed origins
 const allowedOrigins = [                 // Local development
@@ -64,27 +45,27 @@ app.use(cors({
 
 
 app.use(session({
-  store: new PGStore({
-    pg: PG,
-    tableName: 'user_sessions',
-    createTableIfMissing: true
-  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-  },
+  cookie: { secure: false,
+            httpOnly:true,
+            maxAge: 24*60*60*10000,
+   },
 }));
-
 
 app.use(passport.initialize());
 app.use(passport.session());
 
 
+
+const PG = new pg.Client({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -102,7 +83,13 @@ const storage = multer.diskStorage({
 const upload = multer({ storage });
 
 
-
+PG.connect(err => {
+  if (err) {
+    console.error('Connection error', err.stack);
+  } else {
+    console.log('Connected to the database');
+  }
+});
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
