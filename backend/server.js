@@ -26,10 +26,9 @@ env.config();
 
 
 
-// Configure allowed origins
-const allowedOrigins = [                 // Local development
-  'https://knight-trade.onrender.com',       // Production frontend
-  // 'http://172.16.170.179:3000'            // Only include if you need LAN access
+
+const allowedOrigins = [                 
+  'https://knight-trade.onrender.com',       
 ];
 
 app.use(cors({
@@ -58,7 +57,8 @@ app.use(
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure: false,      
+      sameSite: 'none', 
+      secure: process.env.NODE_ENV === 'production',      
       httpOnly: true,
       maxAge: 24 * 60 * 60 * 1000, 
     },
@@ -266,7 +266,6 @@ app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
     if (!user) return res.status(400).json({ message: info.message });
-
     req.logIn(user, (err) => {
       if (err) return next(err);
       console.log("user:", req.user);
