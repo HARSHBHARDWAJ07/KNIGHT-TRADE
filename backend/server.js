@@ -28,8 +28,8 @@ env.config();
 
 // Configure allowed origins
 const allowedOrigins = [                 // Local development
-  'https://knight-trade.onrender.com',       // Production frontend
-  // 'http://172.16.170.179:3000'            // Only include if you need LAN access
+  'https://knight-trade.onrender.com', 
+   'http://localhost:3000',
 ];
 
 app.use(cors({
