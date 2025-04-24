@@ -26,9 +26,10 @@ env.config();
 
 
 
-
-const allowedOrigins = [                 
-  'https://knight-trade.onrender.com',       
+// Configure allowed origins
+const allowedOrigins = [                 // Local development
+  'https://knight-trade.onrender.com', 
+   'http://localhost:3000',
 ];
 
 app.use(cors({
@@ -44,7 +45,6 @@ app.use(cors({
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
-
 
 
 
@@ -266,6 +266,7 @@ app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
     if (!user) return res.status(400).json({ message: info.message });
+
     req.logIn(user, (err) => {
       if (err) return next(err);
       console.log("user:", req.user);
