@@ -269,7 +269,7 @@ app.post("/login", (req, res, next) => {
     email: user.email,
     username: user.username
   }
-        token: req.sessionID 
+        
       });
     });
   })(req, res, next);

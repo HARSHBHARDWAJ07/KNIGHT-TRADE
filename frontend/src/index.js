@@ -5,10 +5,21 @@ import './index.css';
 import store from './redux/store';
 import App from './App';
 
+// Add persistence logic
+const initializeApp = async () => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    store.dispatch({ type: 'REHYDRATE_AUTH' });
+  }
+};
+
 const container = document.getElementById('root');
 const root = createRoot(container);
-root.render(
-  <Provider store={store}>
-    <App />
-  </Provider>
-);
+
+initializeApp().then(() => {
+  root.render(
+    <Provider store={store}>
+      <App />
+    </Provider>
+  );
+});

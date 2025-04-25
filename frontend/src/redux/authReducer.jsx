@@ -3,7 +3,6 @@ import { LOGIN_SUCCESS, LOGIN_FAILURE, LOGOUT } from './actionTypes';
 const initialState = {
   isAuthenticated: false,
   user: null,
-  token: null,
   error: null,
 };
 
@@ -14,7 +13,6 @@ const authReducer = (state = initialState, action) => {
         ...state,
         isAuthenticated: true,
         user: action.payload.user,
-        token: action.payload.token,
         error: null,
       };
     case LOGIN_FAILURE:
@@ -22,7 +20,6 @@ const authReducer = (state = initialState, action) => {
         ...state,
         isAuthenticated: false,
         user: null,
-        token: null,
         error: action.payload,
       };
     case LOGOUT:
@@ -30,8 +27,12 @@ const authReducer = (state = initialState, action) => {
         ...state,
         isAuthenticated: false,
         user: null,
-        token: null,
         error: null,
+      };
+    case 'REHYDRATE_AUTH':
+      return {
+        ...state,
+        isAuthenticated: true
       };
     default:
       return state;

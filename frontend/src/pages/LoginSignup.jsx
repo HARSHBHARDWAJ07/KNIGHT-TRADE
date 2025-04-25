@@ -26,15 +26,12 @@ const LoginSignup = () => {
         `${API_URL}/login`,
         { email, password },
         { withCredentials: true,
-          headers: {
-            'Content-Type': 'application/json'
-          }
          }
       );
       console.log('API Response:', response.data);
     
       if (response.data.user && response.data.token) {
-        console.log(response.data.user && response.data.token)
+        console.log()
         dispatch(loginSuccess(response.data.user, response.data.token));
         navigate('/profile');
       } else if (response.data.message) {

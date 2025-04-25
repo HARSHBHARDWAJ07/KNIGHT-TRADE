@@ -2,41 +2,56 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import LogoutButton from '../Components/LogoutButton/LogoutButton';
 import { useNavigate } from 'react-router-dom';
-import './CSS/Profile.css';  
-
+import { useSelector } from 'react-redux';
+import './CSS/Profile.css';
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 const Profile = () => {
   const [user, setUser] = useState(null);
   const navigate = useNavigate();
-  
+  const { isAuthenticated } = useSelector((state) => state.auth);
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
+        if (!isAuthenticated) {
+          navigate('/login');
+          return;
+        }
+
         const response = await axios.get(`${API_URL}/profile`, {
           withCredentials: true,
         });
 
         if (response.data.status === 'ok') {
           setUser(response.data.user);
-          localStorage.setItem('user', JSON.stringify(response.data.user));
         } else {
-          localStorage.removeItem('user');
-          alert('Not authenticated');
-          navigate('/login');
+          handleAuthError();
         }
       } catch (error) {
         console.error('Error fetching profile:', error);
-        localStorage.removeItem('user');
-        alert('An error occurred while fetching the profile.');
-        navigate('/login');
+        handleAuthError();
       }
     };
 
+    const handleAuthError = () => {
+      localStorage.removeItem('token');
+      navigate('/login');
+    };
+
     fetchProfile();
-  }, [navigate]);
+  }, [navigate, isAuthenticated]);
+
+  if (!isAuthenticated) {
+    return (
+      <div className="container">
+        <div className="profileCard">
+          <p>Redirecting to login...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container">
@@ -44,7 +59,7 @@ const Profile = () => {
         <div className="header">
           <h1 className="title">My Profile</h1>
           <button className="homeButton" onClick={() => navigate('/')}>
-             Home
+            Home
           </button>
         </div>
 
@@ -53,9 +68,9 @@ const Profile = () => {
             <div className="profileSection">
               <div className="avatarContainer">
                 <img
-                   src={`${API_URL}/uploads/${user.profile_photo}`}
+                  src={`${API_URL}/uploads/${user.profile_photo}`}
                   alt="Profile"
-                  className="avatar" 
+                  className="avatar"
                 />
               </div>
               <div className="infoContainer">
@@ -65,7 +80,7 @@ const Profile = () => {
                   <p className="infoText">{user.email}</p>
                 </div>
                 <div className="infoGroup">
-                  <span className="infoLabel">Adress:</span>
+                  <span className="infoLabel">Address:</span>
                   <p className="infoText">{user.address}</p>
                 </div>
               </div>
@@ -73,19 +88,19 @@ const Profile = () => {
 
             <div className="buttonGrid">
               <button className="button" onClick={() => navigate('/wishlist')}>
-                 Wishlist
+                Wishlist
               </button>
               <button
                 className="button"
                 onClick={() => navigate('/myProduct')}
               >
-                 Edit Profile
+                Edit Profile
               </button>
               <button className="button" onClick={() => navigate('/orders')}>
-                 ORDER
+                ORDER
               </button>
               <button className="button" onClick={() => navigate('/addProduct')}>
-                 SELL PRODUCT
+                SELL PRODUCT
               </button>
             </div>
 
@@ -100,7 +115,7 @@ const Profile = () => {
           </div>
         )}
       </div>
-   </div>
+    </div>
   );
 };
 
