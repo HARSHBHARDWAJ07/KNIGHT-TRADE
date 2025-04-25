@@ -1,107 +1,70 @@
-import express from "express";
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
-import dotenv from "dotenv";
+import env from "dotenv";
 import pg from "pg";
-import nodemailer from "nodemailer";
+import nodemailer from 'nodemailer';
 import fs from "fs";
 import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
-import memorystoreFactory from "memorystore";
+import memorystoreFactory from "memorystore";  
 import passport from "passport";
-import { body, validationResult } from "express-validator";
+import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
-import { fileURLToPath } from "url";
-import connectPgSimple from "connect-pg-simple";
-
-dotenv.config();
+import { fileURLToPath } from 'url';
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = 4000;
 const saltRounds = 10;
 
-// build __dirname in ES modules
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const MemoryStore = memorystoreFactory(session);  
 
-// Postgres client
-const PG = new pg.Client({
-  connectionString: process.env.DATABASE_URL,
-  ssl: {
-    rejectUnauthorized: false,
-    require: true,
-  },
-});
 
-// Session store factories
-const PgSessionStore = connectPgSimple(session);
-const MemoryStore = memorystoreFactory(session);
+env.config();
 
-const sessionStore =
-  process.env.NODE_ENV === "production"
-    ? new PgSessionStore({
-        pool: PG,                   // use the client’s pool
-        tableName: "render_sessions",
-        createTableIfMissing: false,
-        ttl: 24 * 60 * 60,
-      })
-    : new MemoryStore({
-        checkPeriod: 24 * 60 * 60 * 1000,
-        ttl: 24 * 60 * 60 * 1000,
-      });
 
-// cleanup helper
-async function initializeSessionStore() {
-  try {
-    await PG.query(`
-      DROP TABLE IF EXISTS session CASCADE;
-      DROP TABLE IF EXISTS render_sessions CASCADE;
-    `);
-    console.log("Old session tables removed");
-  } catch (err) {
-    console.error("Cleanup error:", err);
-  }
-}
 
-// your middleware
-app.set("trust proxy", 1);
-
-const allowedOrigins = [
-  "https://knight-trade.onrender.com",
-  "http://localhost:3000",
+// Configure allowed origins
+const allowedOrigins = [                 // Local development
+  'https://knight-trade.onrender.com', 
+   'http://localhost:3000',
 ];
 
-app.use(
-  cors({
-    origin: allowedOrigins,
-    credentials: true,
-    exposedHeaders: ["Content-Type", "Authorization"],
-    allowedHeaders: ["Content-Type", "Authorization", "Origin"],
-  })
-);
+app.use(cors({
+  origin: function (origin, callback) {
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) === -1) {
+      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
+      return callback(new Error(msg), false);
+    }
+    return callback(null, true);
+  },
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
 
 app.use(
   session({
     secret: process.env.SESSION_SECRET,
-    store: sessionStore,
+    store: new MemoryStore({
+      checkPeriod: 24 * 60 * 60 * 1000, 
+    }),
     resave: false,
     saveUninitialized: false,
-    proxy: true,
     cookie: {
-      sameSite:
-        process.env.NODE_ENV === "production" ? "none" : "lax",
-      secure: process.env.NODE_ENV === "production",
+      sameSite: 'none', 
+      secure: process.env.NODE_ENV === 'production',      
       httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000,
-      domain:
-        process.env.NODE_ENV === "production"
-          ? ".onrender.com"
-          : undefined,
+      maxAge: 24 * 60 * 60 * 1000, 
     },
   })
 );
+
+
 
 app.use(passport.initialize());
 app.use(passport.session());
