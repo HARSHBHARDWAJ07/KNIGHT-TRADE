@@ -25,18 +25,9 @@ const MemoryStore = memorystoreFactory(session);
 env.config();
 
 
-
-// Configure allowed origins
-const allowedOrigins = [                 // Local development
-  'https://knight-trade.onrender.com', 
-   'http://localhost:3000',
-];
-
-app.use(cors({
-  origin: allowedOrigins,
+app.use(cors({ 
+  origin: ['http://localhost:3000','http://172.16.170.179:3000','https://knight-trade.onrender.com'],
   credentials: true,
-  exposedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Cookie']
 }));
 
 // Session configuration
