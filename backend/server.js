@@ -33,29 +33,31 @@ const allowedOrigins = [                 // Local development
 ];
 
 app.use(cors({
-  origin: allowedOrigins,
+  origin(origin, callback) {
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS denied'), false);
+  },
   credentials: true,
-  exposedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Cookie']
+  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
-// Session configuration
+// 3) SESSION – dev gets cookies immediately, prod stays secure
 app.use(session({
   secret: process.env.SESSION_SECRET,
-  store: new MemoryStore({
-    checkPeriod: 86400000, // 24 hours in milliseconds
-    ttl: 86400000 // Session TTL
-  }),
+  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
   resave: false,
-  saveUninitialized: false,
-  proxy: true, // Important for HTTPS behind proxy
+  // in DEV we want saveUninitialized = true so the cookie is set on first login
+  // in PROD you can switch to false once you know your login is saving session data
+  saveUninitialized: process.env.NODE_ENV !== 'production',
   cookie: {
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
     httpOnly: true,
-    maxAge: 86400000,
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
-  }
+    sameSite: 'none',
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000,
+  },
 }));
 
 app.use(passport.initialize());
