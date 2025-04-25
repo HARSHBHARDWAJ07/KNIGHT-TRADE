@@ -25,10 +25,11 @@ env.config();
 
 // Database Connection
 const PG = new pg.Client({
-   connectionString: process.env.DATABASE_URL,
-    ssl: {
+  connectionString: process.env.DATABASE_URL,
+  ssl: {
     rejectUnauthorized: false,
-    require: true 
+    require: true
+  }
 });
 
 // Session Store Configuration
