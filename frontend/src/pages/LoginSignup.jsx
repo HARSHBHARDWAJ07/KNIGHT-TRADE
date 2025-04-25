@@ -25,13 +25,11 @@ const LoginSignup = () => {
       const response = await axios.post(
         `${API_URL}/login`,
         { email, password },
-        { withCredentials: true,
-         }
+        { withCredentials: true }
       );
       console.log('API Response:', response.data);
     
       if (response.data.user && response.data.token) {
-        console.log()
         dispatch(loginSuccess(response.data.user, response.data.token));
         navigate('/profile');
       } else if (response.data.message) {
@@ -51,7 +49,7 @@ const LoginSignup = () => {
       <p className="login-subtitle">Sign in to continue your journey</p>
 
       <form className="login-form" onSubmit={handleLogin}>
-      
+      z
         <LabelInputContainer className="form-group">
           <Label htmlFor="email">Email Address</Label>
           <div className="input-with-icon">
