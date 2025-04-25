@@ -9,44 +9,29 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
-import memorystoreFactory from "memorystore";  
 import passport from "passport";
-import {body , validationResult} from "express-validator";
+import { body, validationResult } from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
+import connectPgSimple from 'connect-pg-simple';
 
-const app = express();
-const port = 4000;
-const saltRounds = 10;
-
-const MemoryStore = memorystoreFactory(session);  
-
-
+// Load environment variables
 env.config();
 
+const app = express();
+const port = process.env.PORT || 4000;
+const saltRounds = 10;
 
-app.use(cors({ 
-  origin: ['http://localhost:3000','http://172.16.170.179:3000','https://knight-trade.onrender.com'],
-  credentials: true,
-}));
+// Database pool for session store & app queries
+const pgPool = new pg.Pool({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
 
-
-app.use(session({
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false,
-            httpOnly:true,
-            maxAge: 24*60*60*10000,
-   },
-}));
-
-
-app.use(passport.initialize());
-app.use(passport.session());
-
-
-
+// Connect a regular client if needed
 const PG = new pg.Client({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
@@ -55,8 +40,33 @@ const PG = new pg.Client({
   port: process.env.PG_PORT,
 });
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
+// Configure CORS
+app.use(cors({ 
+  origin: ['http://localhost:3000','http://172.16.170.179:3000','https://knight-trade.onrender.com'],
+  credentials: true,
+}));
+
+// Configure session store
+const PgSessionStore = connectPgSimple(session);
+app.use(session({
+  store: new PgSessionStore({
+    pool: pgPool,               
+    tableName: 'user_sessions',  
+  }),
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    secure: false,       // set true if using HTTPS
+    httpOnly: true,
+    maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+  },
+}));
+
+// Initialize Passport
+app.use(passport.initialize());
+app.use(passport.session());
 
 
 
