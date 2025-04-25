@@ -323,10 +323,7 @@ app.get("/profile", async (req, res) => {
   console.log("Is Authenticated:", req.isAuthenticated());
   console.log("User:", req.user);
 
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ message: "Unauthorized" });
-  }
-   else {
+  
   const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [req.user.email]);
     if (result.rows.length > 0) {
       console.log('Authenticated user:', result.rows[0]);
@@ -334,7 +331,6 @@ app.get("/profile", async (req, res) => {
     } else {
       return res.status(404).json({ message: "User not found" });
     }
-   }
 });
 
 
