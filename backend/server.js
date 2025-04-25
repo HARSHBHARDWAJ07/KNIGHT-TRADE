@@ -41,10 +41,14 @@ const PG = new pg.Client({
 });
 
 
-// Configure CORS
-app.use(cors({ 
-  origin: ['http://localhost:3000','http://172.16.170.179:3000','https://knight-trade.onrender.com'],
+app.use(cors({
+  origin: [
+    'http://localhost:3000',
+    'https://knight-trade.onrender.com'
+  ],
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
 
 // Configure session store
@@ -260,6 +264,11 @@ app.post("/login", (req, res, next) => {
       res.status(200).json({ 
         message: "Login successful", 
         user: req.user, 
+        user: { 
+    id: user.id,
+    email: user.email,
+    username: user.username
+  }
         token: req.sessionID 
       });
     });
