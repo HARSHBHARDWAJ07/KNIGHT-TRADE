@@ -37,15 +37,32 @@ const PgSessionStore = pgSession(session);
 const MemoryStore = memorystoreFactory(session);
 
 const sessionStore = process.env.NODE_ENV === 'production' 
-  ? new PgSessionStore({
-      conString: process.env.DATABASE_URL,
-      createTableIfMissing: true,
-      ttl: 86400
-    })
+  ?  new PgSessionStore({
+  conString: process.env.DATABASE_URL,
+  createTableIfMissing: false, 
+  tableName: 'render_sessions',
+  ttl: 86400,
+  ssl: { rejectUnauthorized: false }
+});
   : new MemoryStore({
       checkPeriod: 86400000,
       ttl: 86400000
     });
+
+const initializeSessionStore = async () => {
+  try {
+    await PG.query(`
+      DROP TABLE IF EXISTS session CASCADE;
+      DROP TABLE IF EXISTS render_sessions CASCADE;
+    `);
+    console.log('Old session tables removed');
+  } catch (error) {
+    console.error('Cleanup error:', error.message);
+  }
+};
+
+// Run before connecting to PG
+await initializeSessionStore();
 
 // Middleware Configuration
 app.set('trust proxy', 1);
