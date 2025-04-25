@@ -43,7 +43,7 @@ const sessionStore = process.env.NODE_ENV === 'production'
   tableName: 'render_sessions',
   ttl: 86400,
   ssl: { rejectUnauthorized: false }
-});
+})
   : new MemoryStore({
       checkPeriod: 86400000,
       ttl: 86400000
