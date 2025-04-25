@@ -19,8 +19,7 @@ import pgSession from 'connect-pg-simple';
 const app = express();
 const port = 4000;
 const saltRounds = 10;
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+
 
 env.config();
 
