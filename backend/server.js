@@ -9,60 +9,74 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
-import memorystoreFactory from "memorystore";  
+import memorystoreFactory from "memorystore";
 import passport from "passport";
-import {body , validationResult} from "express-validator";
+import {body, validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
+import pgSession from 'connect-pg-simple';
 
 const app = express();
 const port = 4000;
 const saltRounds = 10;
-
-const MemoryStore = memorystoreFactory(session);  
-
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 env.config();
 
+// Database Connection
+const PG = new pg.Client({
+  connectionString: process.env.DATABASE_URL,
+  ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
+});
 
+// Session Store Configuration
+const PgSessionStore = pgSession(session);
+const MemoryStore = memorystoreFactory(session);
 
-// Configure allowed origins
-const allowedOrigins = [                 // Local development
+const sessionStore = process.env.NODE_ENV === 'production' 
+  ? new PgSessionStore({
+      conString: process.env.DATABASE_URL,
+      createTableIfMissing: true,
+      ttl: 86400
+    })
+  : new MemoryStore({
+      checkPeriod: 86400000,
+      ttl: 86400000
+    });
+
+// Middleware Configuration
+app.set('trust proxy', 1);
+
+const allowedOrigins = [
   'https://knight-trade.onrender.com', 
-   'http://localhost:3000',
+  'http://localhost:3000'
 ];
 
 app.use(cors({
-  origin(origin, callback) {
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    return callback(new Error('CORS denied'), false);
-  },
+  origin: allowedOrigins,
   credentials: true,
-  methods: ['GET','POST','PUT','DELETE','OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  exposedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin']
 }));
 
-// 3) SESSION – dev gets cookies immediately, prod stays secure
 app.use(session({
   secret: process.env.SESSION_SECRET,
-  store: new MemoryStore({ checkPeriod: 24 * 60 * 60 * 1000 }),
+  store: sessionStore,
   resave: false,
-  // in DEV we want saveUninitialized = true so the cookie is set on first login
-  // in PROD you can switch to false once you know your login is saving session data
-  saveUninitialized: process.env.NODE_ENV !== 'production',
+  saveUninitialized: false,
+  proxy: true,
   cookie: {
-    httpOnly: true,
-    sameSite: 'none',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
     secure: process.env.NODE_ENV === 'production',
-    maxAge: 24 * 60 * 60 * 1000,
-  },
+    httpOnly: true,
+    maxAge: 86400000,
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : undefined
+  }
 }));
 
 app.use(passport.initialize());
 app.use(passport.session());
-
 
 
 const PG = new pg.Client({
@@ -144,42 +158,25 @@ passport.use(new LocalStrategy({
 }, async (email, password, done) => {
   try {
     const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
-
-    if (result.rows.length === 0) {
-      return done(null, false, { message: "User not found" });
-    }
-
+    if (!result.rows.length) return done(null, false, { message: "User not found" });
+    
     const user = result.rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
-
-    if (isMatch) {
-      return done(null, user);
-    } else {
-      return done(null, false, { message: "Incorrect password" });
-    }
+    return isMatch ? done(null, user) : done(null, false, { message: "Incorrect password" });
   } catch (err) {
     return done(err);
   }
 }));
 
-passport.serializeUser((user, done) => {
-  done(null, user.email); 
-});
-
-passport.deserializeUser(async (email, done) => {
+passport.serializeUser((user, done) => done(null, user.id));
+passport.deserializeUser(async (id, done) => {
   try {
-    const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
-
-    if (result.rows.length > 0) {
-      done(null, result.rows[0]); 
-    } else {
-      done(new Error("User not found"), null);
-    }
+    const result = await PG.query("SELECT * FROM userdata WHERE id = $1", [id]);
+    result.rows[0] ? done(null, result.rows[0]) : done(new Error("User not found"));
   } catch (err) {
-    done(err, null);
+    done(err);
   }
 });
-
 
 app.post("/signup", upload.single('profilePhoto'), async (req, res) => {
   const { email, password, username, address } = req.body;
@@ -254,6 +251,11 @@ app.get('/search', async (req, res) => {
   }
 });
 
+const authenticate = (req, res, next) => {
+  req.isAuthenticated() ? next() : res.status(401).json({ message: 'Unauthorized' });
+};
+
+
 
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
@@ -324,8 +326,7 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
 
 
 
-
-app.get("/profile", async (req, res) => {
+app.get("/profile",authenticate,async (req, res) => {
   console.log("Session info:", req.session);
   console.log("Is Authenticated:", req.isAuthenticated());
   console.log("User:", req.user);
