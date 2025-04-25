@@ -30,24 +30,17 @@ app.use(cors({
   credentials: true,
 }));
 
-// Session configuration
+
 app.use(session({
   secret: process.env.SESSION_SECRET,
-  store: new MemoryStore({
-    checkPeriod: 86400000, // 24 hours in milliseconds
-    ttl: 86400000 // Session TTL
-  }),
   resave: false,
   saveUninitialized: false,
-  proxy: true, // Important for HTTPS behind proxy
-  cookie: {
-    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
-    secure: process.env.NODE_ENV === 'production',
-    httpOnly: true,
-    maxAge: 86400000,
-    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
-  }
+  cookie: { secure: false,
+            httpOnly:true,
+            maxAge: 24*60*60*10000,
+   },
 }));
+
 
 app.use(passport.initialize());
 app.use(passport.session());
