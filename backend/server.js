@@ -33,39 +33,30 @@ const allowedOrigins = [                 // Local development
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: allowedOrigins,
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
+  exposedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Cookie']
 }));
 
-
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    store: new MemoryStore({
-      checkPeriod: 24 * 60 * 60 * 1000, 
-    }),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      sameSite: 'none', 
-      secure: process.env.NODE_ENV === 'production',      
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, 
-    },
-  })
-);
-
-
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  store: new MemoryStore({
+    checkPeriod: 86400000, // 24 hours in milliseconds
+    ttl: 86400000 // Session TTL
+  }),
+  resave: false,
+  saveUninitialized: false,
+  proxy: true, // Important for HTTPS behind proxy
+  cookie: {
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 86400000,
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
+  }
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());
