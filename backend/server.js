@@ -33,45 +33,47 @@ const allowedOrigins = [                 // Local development
 ];
 
 app.use(cors({
-  origin: function (origin, callback) {
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.indexOf(origin) === -1) {
-      const msg = 'The CORS policy for this site does not allow access from the specified Origin.';
-      return callback(new Error(msg), false);
-    }
-    return callback(null, true);
-  },
+  origin: allowedOrigins,
   credentials: true,
-  allowedHeaders: ['Content-Type', 'Authorization']
+  exposedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Origin', 'Cookie']
 }));
 
-
-
-app.use(
-  session({
-    secret: process.env.SESSION_SECRET,
-    store: new MemoryStore({
-      checkPeriod: 24 * 60 * 60 * 1000, 
-    }),
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      sameSite: 'none', 
-      secure: process.env.NODE_ENV === 'production',      
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, 
-    },
-  })
-);
-
-
+// Session configuration
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  store: new MemoryStore({
+    checkPeriod: 86400000, // 24 hours in milliseconds
+    ttl: 86400000 // Session TTL
+  }),
+  resave: false,
+  saveUninitialized: false,
+  proxy: true, // Important for HTTPS behind proxy
+  cookie: {
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax',
+    secure: process.env.NODE_ENV === 'production',
+    httpOnly: true,
+    maxAge: 86400000,
+    domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
+  }
+}));
 
 app.use(passport.initialize());
 app.use(passport.session());
 
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
+
+
+const PG = new pg.Client({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
 
 
 const storage = multer.diskStorage({
@@ -92,9 +94,6 @@ PG.connect(err => {
     console.log('Connected to the database');
   }
 });
-
-await initializeSessionStore();
-
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -143,25 +142,42 @@ passport.use(new LocalStrategy({
 }, async (email, password, done) => {
   try {
     const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
-    if (!result.rows.length) return done(null, false, { message: "User not found" });
-    
+
+    if (result.rows.length === 0) {
+      return done(null, false, { message: "User not found" });
+    }
+
     const user = result.rows[0];
     const isMatch = await bcrypt.compare(password, user.password);
-    return isMatch ? done(null, user) : done(null, false, { message: "Incorrect password" });
+
+    if (isMatch) {
+      return done(null, user);
+    } else {
+      return done(null, false, { message: "Incorrect password" });
+    }
   } catch (err) {
     return done(err);
   }
 }));
 
-passport.serializeUser((user, done) => done(null, user.id));
-passport.deserializeUser(async (id, done) => {
+passport.serializeUser((user, done) => {
+  done(null, user.email); 
+});
+
+passport.deserializeUser(async (email, done) => {
   try {
-    const result = await PG.query("SELECT * FROM userdata WHERE id = $1", [id]);
-    result.rows[0] ? done(null, result.rows[0]) : done(new Error("User not found"));
+    const result = await PG.query("SELECT * FROM userdata WHERE email = $1", [email]);
+
+    if (result.rows.length > 0) {
+      done(null, result.rows[0]); 
+    } else {
+      done(new Error("User not found"), null);
+    }
   } catch (err) {
-    done(err);
+    done(err, null);
   }
 });
+
 
 app.post("/signup", upload.single('profilePhoto'), async (req, res) => {
   const { email, password, username, address } = req.body;
@@ -237,9 +253,6 @@ app.get('/search', async (req, res) => {
 });
 
 
-
-
-
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
@@ -309,7 +322,8 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
 
 
 
-app.get("/profile",authenticate,async (req, res) => {
+
+app.get("/profile", async (req, res) => {
   console.log("Session info:", req.session);
   console.log("Is Authenticated:", req.isAuthenticated());
   console.log("User:", req.user);
