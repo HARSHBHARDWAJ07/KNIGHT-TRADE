@@ -259,7 +259,7 @@ app.post("/login", (req, res, next) => {
   })(req, res, next);
 });
 
-app.post('/purchaseproduct', authenticate, async (req, res) => {
+app.post('/purchaseproduct', async (req, res) => {
   const { userEmail, username, user_id, userAddress, productName, price, product_id } = req.body;
 
   if (!userEmail || !username || !userAddress || !productName || !price || !user_id || !product_id) {
