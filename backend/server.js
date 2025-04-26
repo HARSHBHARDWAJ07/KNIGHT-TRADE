@@ -93,12 +93,6 @@ PG.connect(err => {
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-const authenticate = (req, res, next) => {
-  if (!req.user) {
-      return res.status(401).json({ message: 'Unauthorized' });
-  }
-  next();
-};
 
 
 const transporter = nodemailer.createTransport({
@@ -315,9 +309,7 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
   }
 });
 
-
-
-app.get("/profile",authenticate,async (req, res) => {
+app.get("/profile",async (req, res) => {
   console.log("Session info:", req.session);
   console.log("Is Authenticated:", req.isAuthenticated());
   console.log("User:", req.user);
@@ -335,6 +327,7 @@ app.get("/profile",authenticate,async (req, res) => {
     }
    }
 });
+
 
 app.post("/profile",
   upload.single('productImage'),
