@@ -42,13 +42,12 @@ const PG = new pg.Client({
 
 
 app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://knight-trade.onrender.com'
-  ],
+  origin: process.env.NODE_ENV === 'production' 
+    ? 'https://knight-trade.onrender.com' 
+    : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Configure session store
@@ -256,20 +255,26 @@ app.get('/search', async (req, res) => {
 app.post("/login", (req, res, next) => {
   passport.authenticate("local", (err, user, info) => {
     if (err) return next(err);
-    if (!user) return res.status(400).json({ message: info.message });
+    if (!user) return res.status(401).json({ message: info.message });
 
     req.logIn(user, (err) => {
       if (err) return next(err);
-      console.log("user:", req.user);
-      res.status(200).json({ 
-        message: "Login successful", 
-        user: req.user, 
-        user: { 
-    id: user.id,
-    email: user.email,
-    username: user.username
-  }
-        
+      
+      // Set secure cookie with token
+      res.cookie('auth_token', user.id, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === 'production',
+        sameSite: 'none',
+        maxAge: 30 * 24 * 60 * 60 * 1000
+      });
+
+      res.status(200).json({
+        message: "Login successful",
+        user: {
+          id: user.id,
+          email: user.email,
+          username: user.username
+        }
       });
     });
   })(req, res, next);
