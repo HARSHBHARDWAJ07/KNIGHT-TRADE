@@ -31,6 +31,7 @@ const LoginSignup = () => {
     
       if (response.data.user && response.data.token) {
         dispatch(loginSuccess(response.data.user, response.data.token));
+         console.log('API Response:', response.data);
         navigate('/profile');
       } else if (response.data.message) {
         dispatch(loginFailure(response.data.message)); 
