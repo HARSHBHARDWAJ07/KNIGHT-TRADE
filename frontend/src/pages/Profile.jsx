@@ -1,42 +1,43 @@
-import React, { useState, useEffect } from 'react';
-import axios from 'axios';
-import LogoutButton from '../Components/LogoutButton/LogoutButton';
-import { useNavigate } from 'react-router-dom';
-import './CSS/Profile.css';
+import React, { useState, useEffect } from "react";
+import axios from "axios";
+import LogoutButton from "../Components/LogoutButton/LogoutButton";
+import { useNavigate } from "react-router-dom";
+import "./CSS/Profile.css";
 
 const API_URL = process.env.REACT_APP_API_URL;
 
 const Profile = () => {
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true); // Loading state
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const { data } = await axios.get(
-          `${API_URL}/profile`,
-          { withCredentials: true }
-        );
+        const { data } = await axios.get(`${API_URL}/profile`, {
+          withCredentials: true, // Include credentials (cookies)
+        });
 
-        if (data.status === 'ok' && data.user) {
+        if (data.status === "ok" && data.user) {
           setUser(data.user);
-          localStorage.setItem('user', JSON.stringify(data.user));
+          localStorage.setItem("user", JSON.stringify(data.user));
         } else {
-          throw new Error('Not authenticated');
+          throw new Error("Not authenticated");
         }
       } catch (err) {
-        console.error('Error fetching profile:', err);
-        localStorage.removeItem('user');
-        alert('Please log in to view your profile.');
-        navigate('/login');
+        console.error("Error fetching profile:", err);
+        localStorage.removeItem("user");
+        alert("Session expired. Please log in again.");
+        navigate("/login");
+      } finally {
+        setIsLoading(false); // Set loading to false
       }
     };
 
     fetchProfile();
   }, [navigate]);
 
- 
-  if (!user) {
+  if (isLoading) {
     return (
       <div className="container">
         <div className="profileCard">
@@ -49,12 +50,16 @@ const Profile = () => {
     );
   }
 
+  if (!user) {
+    return null; // If no user, the effect will navigate to login
+  }
+
   return (
     <div className="container">
       <div className="profileCard">
         <div className="header">
           <h1 className="title">My Profile</h1>
-          <button className="homeButton" onClick={() => navigate('/')}>
+          <button className="homeButton" onClick={() => navigate("/")}>
             Home
           </button>
         </div>
@@ -68,7 +73,7 @@ const Profile = () => {
                 className="avatar"
                 onError={(e) => {
                   e.target.onerror = null;
-                  e.target.src = '/placeholder.png';
+                  e.target.src = "/placeholder.png";
                 }}
               />
             ) : (
@@ -92,28 +97,16 @@ const Profile = () => {
         </div>
 
         <div className="buttonGrid">
-          <button
-            className="button"
-            onClick={() => navigate('/wishlist')}
-          >
+          <button className="button" onClick={() => navigate("/wishlist")}>
             Wishlist
           </button>
-          <button
-            className="button"
-            onClick={() => navigate('/myProduct')}
-          >
+          <button className="button" onClick={() => navigate("/editProfile")}>
             Edit Profile
           </button>
-          <button
-            className="button"
-            onClick={() => navigate('/orders')}
-          >
+          <button className="button" onClick={() => navigate("/orders")}>
             Orders
           </button>
-          <button
-            className="button"
-            onClick={() => navigate('/addProduct')}
-          >
+          <button className="button" onClick={() => navigate("/addProduct")}>
             Sell Product
           </button>
         </div>
