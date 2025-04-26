@@ -8,41 +8,33 @@ const API_URL = process.env.REACT_APP_API_URL;
 
 const Profile = () => {
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const response = await axios.get(`${API_URL}/profile`, {
-          withCredentials: true,
-          headers: {
-            'Cache-Control': 'no-cache',
-            'Pragma': 'no-cache'
-          }
-        });
+        const { data } = await axios.get(
+          `${API_URL}/profile`,
+          { withCredentials: true }
+        );
 
-        if (response.data.user) {
-          setUser({
-            ...response.data.user,
-            profile_photo: response.data.profile_photo,
-            address: response.data.address
-          });
+        if (data.status === 'ok' && data.user) {
+          setUser(data.user);
+          localStorage.setItem('user', JSON.stringify(data.user));
         } else {
-          throw new Error('Invalid user data structure');
+          throw new Error('Not authenticated');
         }
       } catch (err) {
-        console.error('Profile fetch error:', err.response?.data || err.message);
-        if (err.response?.status === 401) {
-          navigate('/login');
-        }
-      } finally {
-        setLoading(false);
+        console.error('Error fetching profile:', err);
+        localStorage.removeItem('user');
+        alert('Please log in to view your profile.');
+        navigate('/login');
       }
     };
 
     fetchProfile();
   }, [navigate]);
+
  
   if (!user) {
     return (
