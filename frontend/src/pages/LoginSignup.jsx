@@ -10,7 +10,6 @@ import { Label } from '../Components/ui/label';
 import { Input } from '../Components/ui/input';
 import { Link } from 'react-router-dom';
 
-
 const API_URL = process.env.REACT_APP_API_URL;
 
 const LoginSignup = () => {
@@ -30,10 +29,8 @@ const LoginSignup = () => {
       console.log('API Response:', response.data);
     
       if (response.data.user) {
-  dispatch(loginSuccess(response.data.user));
-  console.log('API Response:', response.data);
-  navigate('/profile');
-}
+        dispatch(loginSuccess(response.data.user));
+        navigate('/profile');
       } else if (response.data.message) {
         dispatch(loginFailure(response.data.message)); 
       } else {
@@ -51,7 +48,6 @@ const LoginSignup = () => {
       <p className="login-subtitle">Sign in to continue your journey</p>
 
       <form className="login-form" onSubmit={handleLogin}>
-      z
         <LabelInputContainer className="form-group">
           <Label htmlFor="email">Email Address</Label>
           <div className="input-with-icon">
@@ -60,14 +56,13 @@ const LoginSignup = () => {
               type="text"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              placeholder=" Your email"
+              placeholder="Your email"
               required
             />
             <MdEmail className="icon" />
           </div>
         </LabelInputContainer>
 
-        {/* Password Field */}
         <LabelInputContainer className="form-group">
           <Label htmlFor="password">Password</Label>
           <div className="input-with-icon">
@@ -76,7 +71,7 @@ const LoginSignup = () => {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder=" ••••••••"
+              placeholder="••••••••"
               required
             />
             <FaLock className="icon" />
@@ -88,13 +83,12 @@ const LoginSignup = () => {
         </button>
 
         <div className="register-link">
-        <p>Don't have an account? <Link to="/register">Register</Link></p>
+          <p>Don't have an account? <Link to="/register">Register</Link></p>
         </div>
       </form>
     </div>
   );
 };
-
 
 const LabelInputContainer = ({ children, className }) => {
   return <div className={`label-input-container ${className || ''}`}>{children}</div>;
