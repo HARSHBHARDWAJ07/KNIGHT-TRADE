@@ -47,6 +47,8 @@ app.use(cors({
     credentials: true                            // Allow credentials if needed
 }));
 
+app.set('trust proxy', 1)
+
 // Configure session store
 const PgSessionStore = connectPgSimple(session);
 app.use(session({
