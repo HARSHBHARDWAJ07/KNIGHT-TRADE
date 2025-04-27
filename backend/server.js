@@ -42,11 +42,9 @@ const PG = new pg.Client({
 
 
 app.use(cors({
-    origin: "https://knight-trade-backend.onrender.com",
-    headers: {
-        "Access-Control-Allow-Origin": "https://knight-trade-backend.onrender.com", // incorrect
-        "Access-Control-Allow-Credentials": true // incorrect
-    },
+    origin: 'https://knight-trade.onrender.com', // Allow this origin
+    methods: ['GET', 'POST', 'PUT', 'DELETE'],   // Allow specific HTTP methods
+    credentials: true                            // Allow credentials if needed
 }));
 
 // Configure session store
