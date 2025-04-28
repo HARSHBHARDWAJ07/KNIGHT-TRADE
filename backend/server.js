@@ -34,11 +34,26 @@ app.use(cors({
 
 app.set('trust proxy', 1)
 
-import pgSession from "connect-pg-simple";
+const PG = new pg.Client({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
+
+
+PG.connect(err => {
+  if (err) {
+    console.error('Connection error', err.stack);
+  } else {
+    console.log('Connected to the database');
+  }
+});
 
 app.use(session({
   store: new pgSession({
-    pool: PG, 
+    pool: pg, 
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
@@ -55,13 +70,7 @@ app.use(passport.session());
 
 
 
-const PG = new pg.Client({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -79,13 +88,6 @@ const upload = multer({ storage });
 
 
 
-PG.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to the database');
-  }
-});
 
 
 const authenticate = (req, res, next) => {
