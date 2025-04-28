@@ -26,12 +26,13 @@ env.config();
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-
-app.use(cors({ 
-  origin: ['http://localhost:3000','http://172.16.170.179:3000','https://knight-trade.onrender.com'],
+app.use(cors({
+  origin: ['https://knight-trade.onrender.com'],
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
   credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
 }));
+
 
 app.set('trust proxy', 1)
 
@@ -68,23 +69,27 @@ pool.connect((err, client, release) => {
   }
 });
 
-app.set('trust proxy', 1);
 
 // Session configuration
 app.use(session({
   store: new pgSession({
-  pool: pool, // Use the connection pool
-  tableName: 'user_sessions', // Optional table name
+    pool: pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  proxy: true, // Add this for reverse proxy setups
   cookie: {
     secure: process.env.NODE_ENV === "production",
     httpOnly: true,
-    maxAge: 24 * 60 * 60 * 1000, // 1 day
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
   },
 }));
+
+
 
 app.use(passport.initialize());
 app.use(passport.session());
