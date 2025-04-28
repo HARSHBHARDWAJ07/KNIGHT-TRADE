@@ -9,7 +9,7 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
-import pgSession from "connect-pg-simple";
+import connectPgSimple from 'connect-pg-simple';
 import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -18,6 +18,7 @@ import { fileURLToPath } from 'url';
 const app = express();
 const port = 4000;
 const saltRounds = 10;
+const pgSession = connectPgSimple(session);
 
 env.config();
 
@@ -43,6 +44,14 @@ const PG = new pg.Client({
 });
 
 
+const pool = new pg.Pool({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
+
 PG.connect(err => {
   if (err) {
     console.error('Connection error', err.stack);
@@ -50,15 +59,22 @@ PG.connect(err => {
     console.log('Connected to the database');
   }
 });
-
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Error acquiring client', err.stack);
+  } else {
+    console.log('Connected to the database');
+    release();
+  }
+});
 
 app.set('trust proxy', 1);
 
 // Session configuration
 app.use(session({
   store: new pgSession({
-    pool: pg, // Use the connection pool
-    tableName: 'user_sessions', // Optional table name
+  pool: pool, // Use the connection pool
+  tableName: 'user_sessions', // Optional table name
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
