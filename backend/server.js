@@ -51,15 +51,20 @@ PG.connect(err => {
   }
 });
 
+
+app.set('trust proxy', 1);
+
+// Session configuration
 app.use(session({
   store: new pgSession({
-    pool: pg, 
+    pool: pg, // Use the connection pool
+    tableName: 'user_sessions', // Optional table name
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { 
-    secure: process.env.NODE_ENV === "production", 
+  cookie: {
+    secure: process.env.NODE_ENV === "production",
     httpOnly: true,
     maxAge: 24 * 60 * 60 * 1000, // 1 day
   },
