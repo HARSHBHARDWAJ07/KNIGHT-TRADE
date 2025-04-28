@@ -9,6 +9,7 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
+import pgSession from "connect-pg-simple";
 import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
@@ -21,6 +22,8 @@ const saltRounds = 10;
 env.config();
 
 
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
 
 
 app.use(cors({ 
@@ -31,14 +34,20 @@ app.use(cors({
 
 app.set('trust proxy', 1)
 
+import pgSession from "connect-pg-simple";
+
 app.use(session({
+  store: new pgSession({
+    pool: PG, 
+  }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { secure: false,
-            httpOnly:true,
-            maxAge: 24*60*60*10000,
-   },
+  cookie: { 
+    secure: process.env.NODE_ENV === "production", 
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000, // 1 day
+  },
 }));
 
 app.use(passport.initialize());
@@ -78,8 +87,6 @@ PG.connect(err => {
   }
 });
 
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(bodyParser.json());
 
 const authenticate = (req, res, next) => {
   if (!req.user) {
