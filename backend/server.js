@@ -518,6 +518,8 @@ app.delete('/wishlist/remove', async (req, res) => {
 app.delete('/delete/product', async (req, res) => {
   const { product_id } = req.body;
   console.log(product_id);
+ const results = await PG.query('DELETE FROM wishlist WHERE product_id = $1]',[product_id]);
+
   try {
     const result = await PG.query('DELETE FROM products WHERE id = $1', [product_id]);
    
