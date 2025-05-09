@@ -100,8 +100,8 @@ const Profile = () => {
           <button className="button" onClick={() => navigate("/wishlist")}>
             Wishlist
           </button>
-          <button className="button" onClick={() => navigate("/editProfile")}>
-            Edit Profile
+          <button className="button" onClick={() => navigate("/myProduct")}>
+            My Product
           </button>
           <button className="button" onClick={() => navigate("/orders")}>
             Orders
