@@ -516,23 +516,53 @@ app.delete('/wishlist/remove', async (req, res) => {
 });
 
 app.delete('/delete/product', async (req, res) => {
-  const { product_id } = req.body;
-  console.log(product_id);
- const results = await PG.query('DELETE FROM wishlist WHERE product_id = $1',[product_id]);
+  const { product_id, user_id } = req.body;  // user_id if you’re scoping wishlist deletes per‐user
 
   try {
-    const result = await PG.query('DELETE FROM products WHERE id = $1', [product_id]);
-   
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Product not found' });
+    await PG.query('BEGIN');
+
+    // 1️⃣ remove from wishlist
+    const wl = await PG.query(
+      `DELETE FROM wishlist
+         WHERE product_id = $1
+           AND user_id    = $2`,
+      [product_id, user_id]
+    );
+
+    // 2️⃣ remove from orders
+    const ord = await PG.query(
+      `DELETE FROM "order"
+         WHERE product_id = $1`,
+      [product_id]
+    );
+
+    // 3️⃣ remove the product itself
+    const prod = await PG.query(
+      `DELETE FROM products
+         WHERE id = $1`,
+      [product_id]
+    );
+
+    await PG.query('COMMIT');
+
+    // Build response
+    const msgs = [];
+    if (wl.rowCount)  msgs.push(`Removed ${wl.rowCount} wishlist entr${wl.rowCount>1?'ies':'y'}.`);
+    if (ord.rowCount) msgs.push(`Deleted ${ord.rowCount} order${ord.rowCount>1?'s':''}.`);
+    if (prod.rowCount) msgs.push(`Deleted product ${product_id}.`);
+    if (!msgs.length) {
+      return res.status(404).json({ error: 'Nothing found to delete' });
     }
-    
-    res.json({ message: 'Product removed from wishlist' });
+
+    res.json({ message: msgs.join(' ') });
+
   } catch (err) {
+    await PG.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: 'Error removing from wishlist' });
+    res.status(500).json({ error: 'Error deleting product and related data' });
   }
 });
+
 
 
 
