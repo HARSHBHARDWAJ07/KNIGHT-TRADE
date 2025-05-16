@@ -98,11 +98,8 @@ const Profile = () => {
           >
             Wishlist
           </button>
-          <button
-            className="button"
-            onClick={() => navigate('/myProduct')}
-          >
-            Edit Profile
+           <button className="button" onClick={() => navigate("/myProduct")}>
+            My Product
           </button>
           <button
             className="button"
