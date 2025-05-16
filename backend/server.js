@@ -327,7 +327,7 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
 
 
 
-app.get("/profile",authenticate,async (req, res) => {
+app.get("/profile",async (req, res) => {
   console.log("Session info:", req.session);
   console.log("Is Authenticated:", req.isAuthenticated());
   console.log("User:", req.user);
