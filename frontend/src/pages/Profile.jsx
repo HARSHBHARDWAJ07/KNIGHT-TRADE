@@ -102,7 +102,7 @@ const Profile = () => {
             className="button"
             onClick={() => navigate('/myProduct')}
           >
-            Edit Profile
+            My Product
           </button>
           <button
             className="button"
