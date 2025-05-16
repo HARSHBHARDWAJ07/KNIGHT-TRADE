@@ -264,12 +264,12 @@ app.post("/login", (req, res, next) => {
       res.status(200).json({ 
         message: "Login successful", 
         user: req.user, 
+        token: req.sessionID,   
         user: { 
     id: user.id,
     email: user.email,
     username: user.username
-  }
-        
+  }       
       });
     });
   })(req, res, next);
