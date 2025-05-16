@@ -6,6 +6,7 @@
   background: #ffffff;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
   position: relative;
+  border-radius: 1rem;
 }
 
 .search-form {
@@ -233,6 +234,9 @@
     flex: 100%;
     max-width: 100%;
     margin-top: 0.5rem;
+  }
+  .search-input-container input::placeholder {
+    font-size: 0.8rem;
   }
   
   .filter-button {

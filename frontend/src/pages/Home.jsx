@@ -1,3 +1,4 @@
+/* eslint-disable jsx-a11y/anchor-is-valid */
 import React, { useState, useEffect } from 'react'; 
 import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
@@ -142,37 +143,37 @@ const Home = ({ Username }) => {
         <>
           <ul className="product_specific">
             <li>
-              <a href="/cycle" onClick={() => handleProductSpecificClick('cycle')}>
+              <a  onClick={() => handleProductSpecificClick('cycle')}>
                 Cycle
               </a>
             </li>
             <li>
-              <a href="/laptop" onClick={() => handleProductSpecificClick('Laptop')}>
+              <a  onClick={() => handleProductSpecificClick('Laptop')}>
                 Laptop
               </a>
             </li>
             <li>
-              <a href="/lamp" onClick={() => handleProductSpecificClick('Lamp')}>
+              <a onClick={() => handleProductSpecificClick('Lamp')}>
                 Lamp
               </a>
             </li>
             <li>
-              <a href="/cooler" onClick={() => handleProductSpecificClick('Cooler')}>
+              <a  onClick={() => handleProductSpecificClick('Cooler')}>
                 Cooler
               </a>
             </li>
             <li>
-              <a href="/guiter" onClick={() => handleProductSpecificClick('Guiter')}>
+              <a  onClick={() => handleProductSpecificClick('Guiter')}>
                 Guiter
               </a>
             </li>
             <li>
-              <a href="/mouse" onClick={() => handleProductSpecificClick('Mouse')}>
+              <a  onClick={() => handleProductSpecificClick('Mouse')}>
                 Mouse
               </a>
             </li>
             <li>
-              <a href="/football" onClick={() => handleProductSpecificClick('Football')}>
+              <a  onClick={() => handleProductSpecificClick('Football')}>
                 Football
               </a>
             </li>

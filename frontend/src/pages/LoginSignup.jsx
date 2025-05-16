@@ -8,10 +8,6 @@ import { MdEmail } from 'react-icons/md';
 import React, { useState } from 'react';
 import { Label } from '../Components/ui/label';
 import { Input } from '../Components/ui/input';
-import { Link } from 'react-router-dom';
-
-
-const API_URL = process.env.REACT_APP_API_URL;
 
 const LoginSignup = () => {
   const [email, setEmail] = useState('');
@@ -23,17 +19,17 @@ const LoginSignup = () => {
     e.preventDefault();
     try {
       const response = await axios.post(
-        `${API_URL}/login`,
+        'http://localhost:4000/login',
         { email, password },
         { withCredentials: true }
       );
       console.log('API Response:', response.data);
-    
+      // Debugging to inspect the response
       if (response.data.user && response.data.token) {
         dispatch(loginSuccess(response.data.user, response.data.token));
         navigate('/profile');
       } else if (response.data.message) {
-        dispatch(loginFailure(response.data.message)); 
+        dispatch(loginFailure(response.data.message)); // e.g., "the user_id is not found"
       } else {
         dispatch(loginFailure('Login failed, please try again.'));
       }
@@ -49,7 +45,7 @@ const LoginSignup = () => {
       <p className="login-subtitle">Sign in to continue your journey</p>
 
       <form className="login-form" onSubmit={handleLogin}>
-      z
+        {/* Email Field */}
         <LabelInputContainer className="form-group">
           <Label htmlFor="email">Email Address</Label>
           <div className="input-with-icon">
@@ -86,14 +82,16 @@ const LoginSignup = () => {
         </button>
 
         <div className="register-link">
-        <p>Don't have an account? <Link to="/register">Register</Link></p>
+          <p>
+            Don't have an account? <a href="/register">Register</a>
+          </p>
         </div>
       </form>
     </div>
   );
 };
 
-
+// LabelInputContainer Component
 const LabelInputContainer = ({ children, className }) => {
   return <div className={`label-input-container ${className || ''}`}>{children}</div>;
 };

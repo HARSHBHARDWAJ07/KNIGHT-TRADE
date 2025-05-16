@@ -1,4 +1,4 @@
-import express from "express";
+import express from "express"; 
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
@@ -10,28 +10,42 @@ import cors from "cors";
 import path from "path";
 import multer from "multer";
 import passport from "passport";
-import { body, validationResult } from "express-validator";
+import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
-import connectPgSimple from 'connect-pg-simple';
-
-// Load environment variables
-env.config();
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = 4000;
 const saltRounds = 10;
 
-// Database pool for session store & app queries
-const pgPool = new pg.Pool({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
+env.config();
 
-// Connect a regular client if needed
+
+
+
+app.use(cors({ 
+  origin: ['http://localhost:3000','http://172.16.170.179:3000','https://knight-trade.onrender.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+}));
+
+app.set('trust proxy', 1)
+
+app.use(session({
+  secret: process.env.SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { secure: false,
+            httpOnly:true,
+            maxAge: 24*60*60*10000,
+   },
+}));
+
+app.use(passport.initialize());
+app.use(passport.session());
+
+
+
 const PG = new pg.Client({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
@@ -40,41 +54,9 @@ const PG = new pg.Client({
   port: process.env.PG_PORT,
 });
 
-
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://knight-trade.onrender.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
-
-// Configure session store
-const PgSessionStore = connectPgSimple(session);
-app.use(session({
-  store: new PgSessionStore({
-    pool: pgPool,               
-    tableName: 'user_sessions',  
-  }),
-  secret: process.env.SESSION_SECRET,
-  resave: false,
-  saveUninitialized: false,
-  cookie: {
-  secure: process.env.NODE_ENV === 'production', // true in production
-  httpOnly: true,
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-}
-}));
-
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -85,6 +67,7 @@ const storage = multer.diskStorage({
   },
 });
 const upload = multer({ storage });
+
 
 
 PG.connect(err => {
@@ -240,7 +223,7 @@ app.get('/search', async (req, res) => {
       return res.status(400).json({ error: 'Invalid maximum price' });
     }
     queryParams.push(max);
-    query += ` AND product_price <= $${queryParams.length}`;
+    query += `AND product_price >= $${queryParams.length}`;
   }
 
   try {
@@ -264,12 +247,7 @@ app.post("/login", (req, res, next) => {
       res.status(200).json({ 
         message: "Login successful", 
         user: req.user, 
-        user: { 
-    id: user.id,
-    email: user.email,
-    username: user.username
-  }
-        
+        token: req.sessionID 
       });
     });
   })(req, res, next);
@@ -294,18 +272,18 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
     const productOwnerEmail = rows[0].product_email;
 
     const emailHtml = `
-      <p>Hello,</p>
-      <p>You have received a new purchase request for your product: <strong>${productName}</strong>.</p>
-      <p>Buyer Details:</p>
-      <ul>
-        <li>Name: ${username}</li>
-        <li>Email: ${userEmail}</li>
-        <li>Address: ${userAddress}</li>
-      </ul>
-      <p>Product Price: $${price}</p>
-      <p>Please reach out to the buyer to confirm the purchase.</p>
-      <p>Thank you,<br>Your Company Name</p>
-    `;
+    <p>Hello,</p>
+    <p>You have received a new purchase request for your product: <strong>${productName}</strong>.</p>
+    <p>Buyer Details:</p>
+    <ul>
+      <li>Name: ${username}</li>
+      <li>Email: ${userEmail}</li>
+      <li>Address: ${userAddress}</li>
+    </ul>
+    <p>Product Price: $${price}</p>
+    <p>Please reach out to the buyer to confirm the purchase.</p>
+    <p>Thank you,<br>Your Company Name</p>
+  `;
 
     await sendMail({
       to: productOwnerEmail,
@@ -327,7 +305,8 @@ app.post('/purchaseproduct', authenticate, async (req, res) => {
 
 
 
-app.get("/profile",authenticate,async (req, res) => {
+
+app.get("/profile", async (req, res) => {
   console.log("Session info:", req.session);
   console.log("Is Authenticated:", req.isAuthenticated());
   console.log("User:", req.user);
@@ -345,6 +324,7 @@ app.get("/profile",authenticate,async (req, res) => {
     }
    }
 });
+
 
 app.post("/profile",
   upload.single('productImage'),
@@ -456,11 +436,11 @@ app.get('/order', async (req, res) => {
 
   try {
     const query = `
-      SELECT p.id, p.product_name, p.product_price, p.product_image , p.product_description,p.user_username,p.id
-      FROM "order" w
-      JOIN products p ON w.product_id = p.id
-      WHERE w.user_id = $1
-    `;
+    SELECT p.id, p.product_name, p.product_price, p.product_image , p.product_description,p.user_username,p.id
+    FROM "order" w
+    JOIN products p ON w.product_id = p.id
+    WHERE w.user_id = $1
+  `;
     const { rows } = await PG.query(query, [userId]);
     res.json(rows);
   } catch (err) {
@@ -540,4 +520,3 @@ app.post('/logout', (req, res) => {
 app.listen(port, () => {
   console.log(`Server running on port ${port}`);
 });
-
