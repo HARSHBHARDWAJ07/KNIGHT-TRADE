@@ -48,7 +48,7 @@ app.use(cors({
   ],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization','Cookie']
 }));
 
 // Configure session store
@@ -264,12 +264,12 @@ app.post("/login", (req, res, next) => {
       res.status(200).json({ 
         message: "Login successful", 
         user: req.user, 
-        token: req.sessionID,   
         user: { 
     id: user.id,
     email: user.email,
     username: user.username
-  }       
+  },       
+        token: req.sessionID 
       });
     });
   })(req, res, next);
