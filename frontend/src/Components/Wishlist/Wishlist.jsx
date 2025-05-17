@@ -34,7 +34,7 @@ const Wishlist = () => {
 
       try {
         const { data } = await axios.get(
-          `${API_URL}/wishlist`,
+          `${API_URL}/api/wishlist`,
           {
             params: { user_id },
             withCredentials: true
