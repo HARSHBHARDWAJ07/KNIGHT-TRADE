@@ -1,4 +1,4 @@
-import express from "express";
+import express from "express"; 
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
@@ -9,29 +9,33 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
+import connectPgSimple from 'connect-pg-simple';
 import passport from "passport";
-import { body, validationResult } from "express-validator";
+import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
-import connectPgSimple from 'connect-pg-simple';
-
-// Load environment variables
-env.config();
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = 4000;
 const saltRounds = 10;
+const pgSession = connectPgSimple(session);
 
-// Database pool for session store & app queries
-const pgPool = new pg.Pool({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
+env.config();
 
-// Connect a regular client if needed
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+app.use(cors({
+  origin: ['https://knight-trade.onrender.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
+app.set('trust proxy', 1)
+
 const PG = new pg.Client({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
@@ -41,40 +45,62 @@ const PG = new pg.Client({
 });
 
 
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://knight-trade.onrender.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization','Cookie']
-}));
+const pool = new pg.Pool({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
 
-// Configure session store
-const PgSessionStore = connectPgSimple(session);
+PG.connect(err => {
+  if (err) {
+    console.error('Connection error', err.stack);
+  } else {
+    console.log('Connected to the database');
+  }
+});
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Error acquiring client', err.stack);
+  } else {
+    console.log('Connected to the database');
+    release();
+  }
+});
+
+
+// Session configuration
 app.use(session({
-  store: new PgSessionStore({
-    pool: pgPool,               
-    tableName: 'user_sessions',  
+  store: new pgSession({
+    pool: pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  proxy: true, // Add this for reverse proxy setups
   cookie: {
-  secure: process.env.NODE_ENV === 'production', // true in production
-  httpOnly: true,
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-}
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+  },
 }));
 
-// Initialize Passport
+
+
 app.use(passport.initialize());
 app.use(passport.session());
 
+
+
+
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -86,14 +112,6 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage });
 
-
-PG.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to the database');
-  }
-});
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
