@@ -53,11 +53,77 @@ const pool = new pg.Pool({
   port: process.env.PG_PORT,
 });
 
-PG.connect(err => {
+// Add this right after connecting to the database
+const initializeDatabase = async () => {
+  try {
+    // Create tables if they don't exist
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS userdata (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        username VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        address TEXT,
+        profile_photo VARCHAR(255)
+      )
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        product_name VARCHAR(255) NOT NULL,
+        product_description TEXT NOT NULL,
+        product_price DECIMAL(10, 2) NOT NULL,
+        product_image VARCHAR(255) NOT NULL,
+        user_username VARCHAR(255) NOT NULL,
+        product_email VARCHAR(255) REFERENCES userdata(email)
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS wishlist (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES userdata(id),
+        product_id INTEGER NOT NULL REFERENCES products(id),
+        UNIQUE (user_id, product_id)
+      )
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS "order" (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES userdata(id),
+        product_id INTEGER NOT NULL REFERENCES products(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      )
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        sid varchar NOT NULL PRIMARY KEY,
+        sess json NOT NULL,
+        expire timestamp(6) NOT NULL
+      )
+    `);
+
+    await PG.query(`
+      CREATE INDEX IF NOT EXISTS IDX_user_sessions_expire 
+      ON user_sessions (expire)
+    `);
+
+    console.log('Database tables initialized successfully');
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    process.exit(1); 
+  }
+};
+
+
+PG.connect(async (err) => {
   if (err) {
     console.error('Connection error', err.stack);
   } else {
     console.log('Connected to the database');
+    await initializeDatabase(); 
   }
 });
 pool.connect((err, client, release) => {
