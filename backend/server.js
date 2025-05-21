@@ -53,10 +53,9 @@ const pool = new pg.Pool({
   port: process.env.PG_PORT,
 });
 
-// Add this right after connecting to the database
+
 const initializeDatabase = async () => {
   try {
-    // Create tables if they don't exist
     await PG.query(`
       CREATE TABLE IF NOT EXISTS userdata (
         id SERIAL PRIMARY KEY,
@@ -65,7 +64,7 @@ const initializeDatabase = async () => {
         password VARCHAR(255) NOT NULL,
         address TEXT,
         profile_photo VARCHAR(255)
-      )
+      );
     `);
 
     await PG.query(`
@@ -77,6 +76,7 @@ const initializeDatabase = async () => {
         product_image VARCHAR(255) NOT NULL,
         user_username VARCHAR(255) NOT NULL,
         product_email VARCHAR(255) REFERENCES userdata(email)
+      );
     `);
 
     await PG.query(`
@@ -85,7 +85,7 @@ const initializeDatabase = async () => {
         user_id INTEGER NOT NULL REFERENCES userdata(id),
         product_id INTEGER NOT NULL REFERENCES products(id),
         UNIQUE (user_id, product_id)
-      )
+      );
     `);
 
     await PG.query(`
@@ -94,7 +94,7 @@ const initializeDatabase = async () => {
         user_id INTEGER NOT NULL REFERENCES userdata(id),
         product_id INTEGER NOT NULL REFERENCES products(id),
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      )
+      );
     `);
 
     await PG.query(`
@@ -102,12 +102,12 @@ const initializeDatabase = async () => {
         sid varchar NOT NULL PRIMARY KEY,
         sess json NOT NULL,
         expire timestamp(6) NOT NULL
-      )
+      );
     `);
 
     await PG.query(`
       CREATE INDEX IF NOT EXISTS IDX_user_sessions_expire 
-      ON user_sessions (expire)
+      ON user_sessions (expire);
     `);
 
     console.log('Database tables initialized successfully');
@@ -116,6 +116,7 @@ const initializeDatabase = async () => {
     process.exit(1); 
   }
 };
+
 
 
 PG.connect(async (err) => {
