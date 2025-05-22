@@ -162,22 +162,35 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 
-
-
-
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); 
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); 
+    
+    const originalName = file.originalname;
+
+    const sanitizedName = originalName
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_.-]/g, '');
+    cb(null, sanitizedName);
   },
 });
-const upload = multer({ storage });
+
+const upload = multer({ 
+  storage,
+
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
+  }
+});
 
 
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -431,6 +444,7 @@ app.get("/profile",async (req, res) => {
    }
 });
 
+
 app.post("/profile",
   upload.single('productImage'),
   (req, res, next) => {
@@ -459,12 +473,12 @@ app.post("/profile",
     }
 
     const { productName, productDescription, productPrice } = req.body;
-    const productImage = req.file.filename;
+    const productImage = req.file.filename; 
 
     try {
       const result = await PG.query(
-        'INSERT INTO products (product_name, product_description, product_price, product_image, user_username , product_email) VALUES ($1, $2, $3, $4, $5 , $6) RETURNING *',
-        [productName, productDescription, productPrice, productImage, req.user.username , req.user.email]
+        'INSERT INTO products (product_name, product_description, product_price, product_image, user_username, product_email) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [productName, productDescription, productPrice, productImage, req.user.username, req.user.email]
       );
 
       res.status(200).json({ message: "Product added successfully", product: result.rows[0] });
@@ -586,7 +600,6 @@ app.delete('/wishlist/remove', async (req, res) => {
 });
 
 app.delete('/delete/product', async (req, res) => {
-app.delete('/delete/product', async (req, res) => {
   const { product_id, user_id } = req.body;  
 
   try {
@@ -630,8 +643,6 @@ app.delete('/delete/product', async (req, res) => {
   }
 });
 
-
-});
 
 
 
