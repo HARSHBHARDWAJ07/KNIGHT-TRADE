@@ -231,8 +231,9 @@
     max-height: 300px;
   }
   
-  .home_page {
+  .product_page {
     padding: 1.5rem;
+    overflow: hidden;
   }
 
   .item-card {
