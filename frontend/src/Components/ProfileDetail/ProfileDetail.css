@@ -118,6 +118,7 @@ button[type="submit"]:disabled {
 /* Responsive Design */
 @media (max-width: 768px) {
   .container {
+    overflow:hidden;
     margin: 1rem;
     padding: 1.5rem;
   }

@@ -141,43 +141,43 @@ const Home = ({ Username }) => {
         </div>
       ) : (
         <>
-          <ul className="product_specific">
-            <li>
-              <a  onClick={() => handleProductSpecificClick('cycle')}>
-                Cycle
-              </a>
-            </li>
-            <li>
-              <a  onClick={() => handleProductSpecificClick('Laptop')}>
-                Laptop
-              </a>
-            </li>
-            <li>
-              <a onClick={() => handleProductSpecificClick('Lamp')}>
-                Lamp
-              </a>
-            </li>
-            <li>
-              <a  onClick={() => handleProductSpecificClick('Cooler')}>
-                Cooler
-              </a>
-            </li>
-            <li>
-              <a  onClick={() => handleProductSpecificClick('Guiter')}>
-                Guiter
-              </a>
-            </li>
-            <li>
-              <a  onClick={() => handleProductSpecificClick('Mouse')}>
-                Mouse
-              </a>
-            </li>
-            <li>
-              <a  onClick={() => handleProductSpecificClick('Football')}>
-                Football
-              </a>
-            </li>
-          </ul>
+         <ul className="product_specific">
+  <li>
+    <a href="/cycle" onClick={(e) => handleProductSpecificClick('cycle', e)}>
+      Cycle
+    </a>
+  </li>
+  <li>
+    <a href="/laptop" onClick={(e) => handleProductSpecificClick('Laptop', e)}>
+      Laptop
+    </a>
+  </li>
+  <li>
+    <a href="/lamp" onClick={(e) => handleProductSpecificClick('Lamp', e)}>
+      Lamp
+    </a>
+  </li>
+  <li>
+    <a href="/cooler" onClick={(e) => handleProductSpecificClick('Cooler', e)}>
+      Cooler
+    </a>
+  </li>
+  <li>
+    <a href="/guitar" onClick={(e) => handleProductSpecificClick('Guitar', e)}>
+      Guitar {/* Fixed spelling */}
+    </a>
+  </li>
+  <li>
+    <a href="/mouse" onClick={(e) => handleProductSpecificClick('Mouse', e)}>
+      Mouse
+    </a>
+  </li>
+  <li>
+    <a href="/football" onClick={(e) => handleProductSpecificClick('Football', e)}>
+      Football
+    </a>
+  </li>
+</ul>
           <ProductDisplay />
         </>
       )}
