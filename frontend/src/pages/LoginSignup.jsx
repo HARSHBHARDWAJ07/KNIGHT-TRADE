@@ -31,6 +31,7 @@ const LoginSignup = () => {
     
       if (response.data.user && response.data.token) {
         dispatch(loginSuccess(response.data.user, response.data.token));
+        console.log("hii2")
         navigate('/profile');
       } else if (response.data.message) {
         dispatch(loginFailure(response.data.message)); 
@@ -49,7 +50,6 @@ const LoginSignup = () => {
       <p className="login-subtitle">Sign in to continue your journey</p>
 
       <form className="login-form" onSubmit={handleLogin}>
-      z
         <LabelInputContainer className="form-group">
           <Label htmlFor="email">Email Address</Label>
           <div className="input-with-icon">

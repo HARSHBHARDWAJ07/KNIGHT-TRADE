@@ -1,4 +1,4 @@
-import express from "express";
+import express from "express"; 
 import bodyParser from "body-parser";
 import bcrypt from "bcrypt";
 import env from "dotenv";
@@ -9,29 +9,33 @@ import session from "express-session";
 import cors from "cors";
 import path from "path";
 import multer from "multer";
+import connectPgSimple from 'connect-pg-simple';
 import passport from "passport";
-import { body, validationResult } from "express-validator";
+import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
-import connectPgSimple from 'connect-pg-simple';
-
-// Load environment variables
-env.config();
 
 const app = express();
-const port = process.env.PORT || 4000;
+const port = 4000;
 const saltRounds = 10;
+const pgSession = connectPgSimple(session);
 
-// Database pool for session store & app queries
-const pgPool = new pg.Pool({
-  user: process.env.PG_USER,
-  host: process.env.PG_HOST,
-  database: process.env.PG_DATABASE,
-  password: process.env.PG_PASSWORD,
-  port: process.env.PG_PORT,
-});
+env.config();
 
-// Connect a regular client if needed
+
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(bodyParser.json());
+
+app.use(cors({
+  origin: ['https://knight-trade.onrender.com'],
+  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  credentials: true,
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+
+app.set('trust proxy', 1)
+
 const PG = new pg.Client({
   user: process.env.PG_USER,
   host: process.env.PG_HOST,
@@ -41,59 +45,153 @@ const PG = new pg.Client({
 });
 
 
-app.use(cors({
-  origin: [
-    'http://localhost:3000',
-    'https://knight-trade.onrender.com'
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
-  allowedHeaders: ['Content-Type', 'Authorization']
-}));
+const pool = new pg.Pool({
+  user: process.env.PG_USER,
+  host: process.env.PG_HOST,
+  database: process.env.PG_DATABASE,
+  password: process.env.PG_PASSWORD,
+  port: process.env.PG_PORT,
+});
 
-// Configure session store
-const PgSessionStore = connectPgSimple(session);
+
+const initializeDatabase = async () => {
+  try {
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS userdata (
+        id SERIAL PRIMARY KEY,
+        email VARCHAR(255) UNIQUE NOT NULL,
+        username VARCHAR(255) NOT NULL,
+        password VARCHAR(255) NOT NULL,
+        address TEXT,
+        profile_photo VARCHAR(255)
+      );
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS products (
+        id SERIAL PRIMARY KEY,
+        product_name VARCHAR(255) NOT NULL,
+        product_description TEXT NOT NULL,
+        product_price DECIMAL(10, 2) NOT NULL,
+        product_image VARCHAR(255) NOT NULL,
+        user_username VARCHAR(255) NOT NULL,
+        product_email VARCHAR(255) REFERENCES userdata(email)
+      );
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS wishlist (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES userdata(id),
+        product_id INTEGER NOT NULL REFERENCES products(id),
+        UNIQUE (user_id, product_id)
+      );
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS "order" (
+        id SERIAL PRIMARY KEY,
+        user_id INTEGER NOT NULL REFERENCES userdata(id),
+        product_id INTEGER NOT NULL REFERENCES products(id),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
+
+    await PG.query(`
+      CREATE TABLE IF NOT EXISTS user_sessions (
+        sid varchar NOT NULL PRIMARY KEY,
+        sess json NOT NULL,
+        expire timestamp(6) NOT NULL
+      );
+    `);
+
+    await PG.query(`
+      CREATE INDEX IF NOT EXISTS IDX_user_sessions_expire 
+      ON user_sessions (expire);
+    `);
+
+    console.log('Database tables initialized successfully');
+  } catch (error) {
+    console.error('Error initializing database:', error);
+    process.exit(1); 
+  }
+};
+
+
+
+PG.connect(async (err) => {
+  if (err) {
+    console.error('Connection error', err.stack);
+  } else {
+    console.log('Connected to the database');
+    await initializeDatabase(); 
+  }
+});
+pool.connect((err, client, release) => {
+  if (err) {
+    console.error('Error acquiring client', err.stack);
+  } else {
+    console.log('Connected to the database');
+    release();
+  }
+});
+
+
+// Session configuration
 app.use(session({
-  store: new PgSessionStore({
-    pool: pgPool,               
-    tableName: 'user_sessions',  
+  store: new pgSession({
+    pool: pool,
+    tableName: 'user_sessions',
+    createTableIfMissing: true
   }),
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
+  proxy: true, // Add this for reverse proxy setups
   cookie: {
-  secure: process.env.NODE_ENV === 'production', // true in production
-  httpOnly: true,
-  maxAge: 30 * 24 * 60 * 60 * 1000,
-  sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
-}
+    secure: process.env.NODE_ENV === "production",
+    httpOnly: true,
+    maxAge: 24 * 60 * 60 * 1000,
+    sameSite: process.env.NODE_ENV === "production" ? 'none' : 'lax',
+  },
 }));
 
-// Initialize Passport
+
+
 app.use(passport.initialize());
 app.use(passport.session());
+
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    cb(null, 'uploads/'); 
+    cb(null, 'uploads/');
   },
   filename: (req, file, cb) => {
-    cb(null, `${Date.now()}-${file.originalname}`); 
+    
+    const originalName = file.originalname;
+
+    const sanitizedName = originalName
+      .replace(/\s+/g, '_')
+      .replace(/[^a-zA-Z0-9_.-]/g, '');
+    cb(null, sanitizedName);
   },
 });
-const upload = multer({ storage });
 
+const upload = multer({ 
+  storage,
 
-PG.connect(err => {
-  if (err) {
-    console.error('Connection error', err.stack);
-  } else {
-    console.log('Connected to the database');
+  fileFilter: (req, file, cb) => {
+    if (file.mimetype.startsWith('image/')) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed!'), false);
+    }
   }
 });
+
 
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
@@ -268,8 +366,8 @@ app.post("/login", (req, res, next) => {
     id: user.id,
     email: user.email,
     username: user.username
-  }
-        
+  },       
+        token: req.sessionID 
       });
     });
   })(req, res, next);
@@ -346,6 +444,7 @@ app.get("/profile",async (req, res) => {
    }
 });
 
+
 app.post("/profile",
   upload.single('productImage'),
   (req, res, next) => {
@@ -374,12 +473,12 @@ app.post("/profile",
     }
 
     const { productName, productDescription, productPrice } = req.body;
-    const productImage = req.file.filename;
+    const productImage = req.file.filename; 
 
     try {
       const result = await PG.query(
-        'INSERT INTO products (product_name, product_description, product_price, product_image, user_username , product_email) VALUES ($1, $2, $3, $4, $5 , $6) RETURNING *',
-        [productName, productDescription, productPrice, productImage, req.user.username , req.user.email]
+        'INSERT INTO products (product_name, product_description, product_price, product_image, user_username, product_email) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *',
+        [productName, productDescription, productPrice, productImage, req.user.username, req.user.email]
       );
 
       res.status(200).json({ message: "Product added successfully", product: result.rows[0] });
@@ -501,21 +600,49 @@ app.delete('/wishlist/remove', async (req, res) => {
 });
 
 app.delete('/delete/product', async (req, res) => {
-  const { product_id } = req.body;
-  console.log(product_id);
+  const { product_id, user_id } = req.body;  
+
   try {
-    const result = await PG.query('DELETE FROM products WHERE id = $1', [product_id]);
-   
-    if (result.rowCount === 0) {
-      return res.status(404).json({ error: 'Product not found' });
+    await PG.query('BEGIN');
+
+    const wl = await PG.query(
+      `DELETE FROM wishlist
+         WHERE product_id = $1
+           AND user_id    = $2`,
+      [product_id, user_id]
+    );
+
+ 
+    const ord = await PG.query(
+      `DELETE FROM "order"
+         WHERE product_id = $1`,
+      [product_id]
+    );
+
+    const prod = await PG.query(
+      `DELETE FROM products
+         WHERE id = $1`,
+      [product_id]
+    );
+
+    await PG.query('COMMIT');
+    const msgs = [];
+    if (wl.rowCount)  msgs.push(`Removed ${wl.rowCount} wishlist entr${wl.rowCount>1?'ies':'y'}.`);
+    if (ord.rowCount) msgs.push(`Deleted ${ord.rowCount} order${ord.rowCount>1?'s':''}.`);
+    if (prod.rowCount) msgs.push(`Deleted product ${product_id}.`);
+    if (!msgs.length) {
+      return res.status(404).json({ error: 'Nothing found to delete' });
     }
-    
-    res.json({ message: 'Product removed from wishlist' });
+
+    res.json({ message: msgs.join(' ') });
+
   } catch (err) {
+    await PG.query('ROLLBACK');
     console.error(err);
-    res.status(500).json({ error: 'Error removing from wishlist' });
+    res.status(500).json({ error: 'Error deleting product and related data' });
   }
 });
+
 
 
 
