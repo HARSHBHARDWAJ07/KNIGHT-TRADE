@@ -138,7 +138,7 @@ button[type="submit"]:disabled {
   }
 
   button[type="submit"] {
-    width: 100%;
+    width: 80%;
     padding: 1rem;
   }
 }

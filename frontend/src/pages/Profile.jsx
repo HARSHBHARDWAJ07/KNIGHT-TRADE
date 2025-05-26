@@ -14,7 +14,6 @@ const Profile = () => {
     const fetchProfile = async () => {
        
       try {
-        console.log("hii3")
         const { data } = await axios.get(
           `${API_URL}/profile`,
           { withCredentials: true }
@@ -22,7 +21,6 @@ const Profile = () => {
 
         if (data.status === 'ok' && data.user) {
           setUser(data.user);
-           console.log("hii4")
           localStorage.setItem('user', JSON.stringify(data.user));
         } else {
           throw new Error('Not authenticated');
