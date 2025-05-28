@@ -164,7 +164,7 @@ const Home = ({ Username }) => {
   </li>
   <li>
     <a href="/guitar" onClick={(e) => handleProductSpecificClick('Guitar', e)}>
-      Guitar {/* Fixed spelling */}
+      Guitar 
     </a>
   </li>
   <li>

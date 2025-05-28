@@ -21,7 +21,6 @@
   width: 100%;
 }
 
-/* Product Specific Navigation */
 .product_specific {
   display: flex;
   flex-wrap: wrap;
@@ -51,6 +50,14 @@
   border: 1px solid #e9ecef;
   text-align: center;
   white-space: nowrap;
+}
+
+/* Hover Effect */
+.product_specific li a:hover {
+  background: #e9ecef;
+  border-color: #ced4da;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
 /* Product Display Grid */
