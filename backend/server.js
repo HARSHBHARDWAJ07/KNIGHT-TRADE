@@ -14,6 +14,7 @@ import passport from "passport";
 import {body , validationResult} from "express-validator";
 import { Strategy as LocalStrategy } from "passport-local";
 import { fileURLToPath } from 'url';
+import { importProducts } from './product-importer.js';
 
 const app = express();
 const port = 4000;
@@ -202,6 +203,25 @@ const authenticate = (req, res, next) => {
   }
   next();
 };
+
+
+ 
+ app.post('/import-products', async (req, res) => {
+ try {
+    const result = await importProducts(PG, saltRounds);
+   if (result.success) {
+     res.status(200).json({ message: result.message });
+} else {
+    res.status(500).json({ error: result.error });
+ }
+/ } catch (error) {
+   console.error('Error in import route:', error);
+   res.status(500).json({ error: 'Failed to initiate import' });
+  }
+}); 
+
+
+
 
 
 const transporter = nodemailer.createTransport({
