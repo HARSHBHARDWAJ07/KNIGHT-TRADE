@@ -126,8 +126,18 @@ PG.connect(async (err) => {
   } else {
     console.log('Connected to the database');
     await initializeDatabase(); 
+  try {
+      const result = await importProducts(PG, saltRounds);
+      console.log(result.message);
+    } catch (error) {
+      console.error('Error importing products on startup:', error);
+    }
   }
 });
+
+
+
+
 pool.connect((err, client, release) => {
   if (err) {
     console.error('Error acquiring client', err.stack);
