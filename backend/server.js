@@ -214,7 +214,7 @@ const authenticate = (req, res, next) => {
 } else {
     res.status(500).json({ error: result.error });
  }
-/ } catch (error) {
+ } catch (error) {
    console.error('Error in import route:', error);
    res.status(500).json({ error: 'Failed to initiate import' });
   }
